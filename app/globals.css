@@ -1,0 +1,423 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─────────────────────────────────────────────────────────────
+   GOOGLE FONTS IMPORT
+   Cormorant Garamond — Elegant display serif for headings
+   Jost              — Clean geometric sans for body
+   Italiana          — Decorative for labels & special text
+───────────────────────────────────────────────────────────── */
+
+/* ─────────────────────────────────────────────────────────────
+   CSS CUSTOM PROPERTIES
+───────────────────────────────────────────────────────────── */
+:root {
+  /* Font vars (referenced in tailwind.config.js) */
+  --font-cormorant: 'Cormorant Garamond', Georgia, serif;
+  --font-jost:      'Jost', system-ui, sans-serif;
+  --font-italiana:  'Italiana', Georgia, serif;
+
+  /* Brand palette */
+  --color-primary:    #062335; /* Deep Navy */
+  --color-muted:      #0A314A; 
+  --color-gold:       #ddb67d; /* Gold */
+  --color-gold-light: #E8CC90;
+  --color-gold-dark:  #C89F5C;
+  --color-porcelain:  #FFFFFF;
+  --color-cream:      #FDFBF7; /* Main Surface Beige */
+  --color-ivory:      #F7F4EE; /* Darker Beige */
+  --color-secondary:  #062335; /* Text on light background */
+  --color-subtle:     #5A6E7D;
+  --color-border:     #E5E0D8;
+  --color-surface:    #FDFBF7; /* Main Surface Beige */
+
+  /* Spacing rhythm */
+  --section-padding: 7rem 0;
+  --section-padding-sm: 4rem 0;
+
+  /* Transitions */
+  --transition-luxury: 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --transition-fast:   0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   BASE RESET & DEFAULTS
+───────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  @apply font-secondary text-secondary bg-surface;
+  font-size: 16px;
+  line-height: 1.75;
+  overflow-x: hidden;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   HEADING DEFAULTS
+───────────────────────────────────────────────────────────── */
+h1, h2, h3, h4, h5, h6 {
+  @apply font-primary text-primary;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   TYPOGRAPHY SCALE
+───────────────────────────────────────────────────────────── */
+
+/* Hero headline — massive, commanding */
+.h1 {
+  @apply text-[52px] xl:text-[72px] font-light leading-[1.05] tracking-[-0.02em];
+  font-family: var(--font-cormorant);
+
+}
+
+/* Section headline */
+.h2 {
+  @apply text-[38px] xl:text-[52px] font-semibold leading-[1.15] capitalize;
+  font-family: var(--font-cormorant);
+  letter-spacing: -0.015em;
+}
+
+/* Card / feature headline */
+.h3 {
+  @apply text-[26px] xl:text-[32px] font-semibold leading-[1.25];
+  font-family: var(--font-cormorant);
+}
+
+/* Sub-section headline */
+.h4 {
+  @apply text-[20px] xl:text-[24px] font-medium leading-[1.35];
+  font-family: var(--font-cormorant);
+}
+
+/* Label / eyebrow above headings */
+.eyebrow {
+  @apply font-secondary text-[11px] font-medium tracking-[0.25em] uppercase text-gold;
+  font-family: var(--font-jost);
+}
+
+/* Large body text */
+.body-lg {
+  @apply font-secondary text-[18px] leading-[1.75] text-secondary;
+}
+
+/* Standard body */
+.body {
+  @apply font-secondary text-[16px] leading-[1.75] text-secondary;
+}
+
+/* Small / caption */
+.body-sm {
+  @apply font-secondary text-[14px] leading-[1.6] text-subtle;
+}
+
+/* Decorative label — uses Italiana font */
+.label-decorative {
+  font-family: var(--font-italiana);
+  @apply text-[18px] text-gold tracking-wide;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   LAYOUT UTILITIES
+───────────────────────────────────────────────────────────── */
+.section {
+  padding: var(--section-padding);
+}
+
+.section-sm {
+  padding: var(--section-padding-sm);
+}
+
+.section-title {
+  @apply text-center mb-16;
+}
+
+.section-title .eyebrow {
+  @apply mb-3 block;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   BUTTON SYSTEM
+───────────────────────────────────────────────────────────── */
+
+/* Primary — gold filled (pill shape) */
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 px-8 py-3 bg-gold text-primary font-secondary font-semibold text-[14px] tracking-[0.08em] uppercase rounded-full transition-all duration-300;
+  letter-spacing: 0.08em;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #E8CC90, #D9B66E);
+  opacity: 0;
+  transition: opacity var(--transition-luxury);
+}
+
+.btn-primary:hover {
+  @apply shadow-gold-glow;
+  transform: translateY(-2px);
+}
+
+.btn-primary:hover::before {
+  opacity: 1;
+}
+
+.btn-primary span,
+.btn-primary svg {
+  position: relative;
+  z-index: 1;
+}
+
+/* Secondary — outline gold */
+.btn-secondary {
+  @apply inline-flex items-center justify-center gap-2 px-8 py-3 bg-transparent text-gold font-secondary font-semibold text-[14px] tracking-[0.08em] uppercase rounded-full border border-gold transition-all duration-300;
+}
+
+.btn-secondary:hover {
+  @apply bg-gold text-primary shadow-gold-glow;
+  transform: translateY(-2px);
+}
+
+/* Ghost — for dark backgrounds */
+.btn-ghost {
+  @apply inline-flex items-center justify-center gap-2 px-8 py-3 bg-transparent text-white font-secondary font-semibold text-[14px] tracking-[0.08em] uppercase rounded-full border border-white/30 transition-all duration-300;
+}
+
+.btn-ghost:hover {
+  @apply border-white bg-white/10;
+  transform: translateY(-2px);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   CARD SYSTEM
+───────────────────────────────────────────────────────────── */
+.card {
+  @apply bg-surface shadow-card rounded-none border border-border transition-all duration-500;
+}
+
+.card:hover {
+  @apply shadow-elevated border-gold/30;
+  transform: translateY(-6px);
+}
+
+.card-glass {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   DIVIDERS & DECORATIVE ELEMENTS
+───────────────────────────────────────────────────────────── */
+
+/* Gold rule — used under eyebrow labels */
+.gold-rule {
+  display: inline-block;
+  width: 48px;
+  height: 1px;
+  background: var(--color-gold);
+  vertical-align: middle;
+  margin: 0 0.75rem;
+}
+
+/* Thin decorative line */
+.divider-gold {
+  width: 60px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-gold), transparent);
+  margin: 1.5rem auto;
+}
+
+/* Diamond separator */
+.diamond-sep::before {
+  content: '◆';
+  color: var(--color-gold);
+  font-size: 8px;
+  letter-spacing: 0.5rem;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   GRAIN TEXTURE OVERLAY (for hero / dark sections)
+───────────────────────────────────────────────────────────── */
+.grain-overlay {
+  position: relative;
+}
+
+.grain-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+  opacity: 0.035;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   GOLD SHIMMER TEXT EFFECT
+───────────────────────────────────────────────────────────── */
+.text-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-gold-dark) 0%,
+    var(--color-gold-light) 40%,
+    var(--color-gold) 50%,
+    var(--color-gold-light) 60%,
+    var(--color-gold-dark) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 3s linear infinite;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   SCROLLBAR STYLING
+───────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-porcelain);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-gold);
+  border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gold-dark);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   SELECTION COLOR
+───────────────────────────────────────────────────────────── */
+::selection {
+  background: rgba(217, 182, 110, 0.4);
+  color: var(--color-primary);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   FOCUS STYLES (accessibility)
+───────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 3px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   IMAGE UTILITIES
+───────────────────────────────────────────────────────────── */
+.img-cover {
+  @apply w-full h-full object-cover object-center;
+}
+
+.img-reveal {
+  overflow: hidden;
+}
+
+.img-reveal img {
+  transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.img-reveal:hover img {
+  transform: scale(1.06);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   SECTION BACKGROUNDS
+───────────────────────────────────────────────────────────── */
+.bg-porcelain-section {
+  background: linear-gradient(180deg, #FFFFFF 0%, #F8F6F1 100%);
+}
+
+.bg-cream-section {
+  background: linear-gradient(180deg, #F8F6F1 0%, #F2EDE4 100%);
+}
+
+.bg-navy-section {
+  background: linear-gradient(135deg, #0D1B2A 0%, #1A2E45 100%);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   FRAMER MOTION HELPERS (initial states to avoid FOUC)
+───────────────────────────────────────────────────────────── */
+[data-framer-motion-initial] {
+  opacity: 0;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   KEYFRAMES (referenced in tailwind config)
+───────────────────────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+@keyframes fadeUp {
+  0%   { opacity: 0; transform: translateY(28px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-12px); }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .shadow-deep {
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
+  }
+  .shadow-gold-glow {
+    box-shadow: 0 4px 20px rgba(201, 168, 76, 0.25);
+  }
+}
+
+/* Custom Scrollbar for Modal */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(217, 182, 110, 0.5);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(217, 182, 110, 0.8);
+}
+
+@keyframes pulseGold {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(201,168,76,0.4); }
+  50%       { box-shadow: 0 0 0 12px rgba(201,168,76,0); }
+}
