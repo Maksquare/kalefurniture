@@ -48,9 +48,11 @@ const ProductModal = ({ isOpen, onClose, product }) => {
   // Normalize swatches from product
   const rawSwatches = product?.swatches || product?.colors;
   const hasSwatches = Array.isArray(rawSwatches) && rawSwatches.length > 0;
+  const allowCustom = product?.allowCustomColor === true;
+  
   const swatches = hasSwatches 
     ? rawSwatches.map((s, idx) => typeof s === "string" ? { id: `s-${idx}`, label: s, color: "#836A58" } : s)
-    : (product?.allowCustomColor !== false ? DEFAULT_SWATCHES : []);
+    : (allowCustom ? DEFAULT_SWATCHES : []);
 
   useEffect(() => {
     if (isOpen) {
@@ -110,7 +112,7 @@ const ProductModal = ({ isOpen, onClose, product }) => {
             <div className="w-full flex-1 overflow-y-auto custom-scrollbar flex flex-col">
               
               {/* 🎨 Top: Dynamic Swatches & Custom Color Option */}
-              {(swatches.length > 0 || product.allowCustomColor) && (
+              {(swatches.length > 0 || allowCustom) && (
                 <div className="flex flex-col items-center mt-6 sm:mt-10 pt-2 px-6">
                   <span className="font-secondary text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-secondary/60 mb-3 flex items-center gap-1.5">
                     <PiPalette className="text-gold text-sm" /> Available Finish & Color
@@ -146,8 +148,8 @@ const ProductModal = ({ isOpen, onClose, product }) => {
                       );
                     })}
 
-                    {/* Custom Color Button */}
-                    {product.allowCustomColor !== false && (
+                    {/* Custom Color Button - Only shown when allowCustom is true */}
+                    {allowCustom && (
                       <button
                         onClick={() => setIsCustomMode(!isCustomMode)}
                         className={`px-3 py-1 rounded-full font-secondary text-[11px] font-medium border transition-all duration-300 flex items-center gap-1 ${

@@ -78,16 +78,25 @@ export default function MadeToOrderModal({ isOpen, onClose, product }) {
     const messageLines = [
       `🏛️ *KAL FURNITURE - MADE TO ORDER REQUEST*`,
       `━━━━━━━━━━━━━━━━━━━━━━`,
-      `*Product:* ${product.name}`,
-      `*Estimated Base Price:* ${(product.price || 0).toLocaleString()} ETB`,
-      product.selectedColor ? `*Requested Color / Finish:* ${product.selectedColor}` : null,
-      `*Wood Finish Preference:* ${selectedWood}`,
-      `*Upholstery Fabric:* ${selectedFabric}`,
-      customNotes ? `*Custom Notes / Dimensions:* ${customNotes}` : null,
+      `*Product:* *${product.name}*`,
+      `*Estimated Base Price:* *${(product.price || 0).toLocaleString()} ETB*`,
+      product.category ? `*Category:* *${product.category}*` : null,
+      product.type ? `*Type:* *${product.type}*` : null,
+      ``,
+      `🎨 *CUSTOMIZATION DETAILS:*`,
+      product.selectedColor ? `• *Requested Color / Finish:* *${product.selectedColor}*` : null,
+      `• *Wood Finish Preference:* *${selectedWood}*`,
+      `• *Upholstery Fabric:* *${selectedFabric}*`,
+      product.dimensions ? `• *Dimensions / Size:* *${product.dimensions.replace(/\n/g, ', ')}*` : null,
+      product.structure ? `• *Structure / Material:* *${product.structure.replace(/\n/g, ', ')}*` : null,
+      product.finish ? `• *Finish Specs:* *${product.finish.replace(/\n/g, ', ')}*` : null,
+      customNotes ? `• *Custom Notes / Specs:* *${customNotes}*` : null,
+      ``,
       `━━━━━━━━━━━━━━━━━━━━━━`,
-      `*Customer Name:* ${customerName}`,
-      `*Customer Phone:* ${customerPhone}`,
-      `*Request Date:* ${new Date().toLocaleDateString()}`
+      `👤 *CUSTOMER INFORMATION:*`,
+      `• *Customer Name:* *${customerName}*`,
+      `• *Customer Phone:* *${customerPhone}*`,
+      `• *Request Date:* *${new Date().toLocaleDateString()}*`
     ].filter(Boolean);
 
     const message = messageLines.join("\n");

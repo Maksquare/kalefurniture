@@ -41,19 +41,32 @@ const CartDrawer = () => {
   }, [isCartOpen]);
 
   const handleCheckout = async () => {
-    const phoneNumber = "1234567890"; // Placeholder number
-    const intro = "Hello Kal Furniture, I would like to order:%0A%0A";
-    const itemsList = cartItems
-      .map(
-        (item) =>
-          `- ${item.quantity}x *${item.name}* (${item.price.toLocaleString()} ETB)`
-      )
-      .join("%0A");
+    const phoneNumber = "251900000000"; // Kal Furniture contact phone / WhatsApp
     
-    const totalLine = `%0A%0A*Total: ${cartTotal.toLocaleString()} ETB*`;
-    const message = intro + itemsList + totalLine;
+    const header = `🏛️ *KAL FURNITURE - CUSTOMER ORDER*\n━━━━━━━━━━━━━━━━━━━━━━\n\n`;
 
-    window.open(`https://wa.me/${phoneNumber}?text=${message}`, "_blank");
+    const itemsDetails = cartItems
+      .map((item, idx) => {
+        const lines = [
+          `*${idx + 1}. ${item.name}*`,
+          `  - *Quantity:* *${item.quantity}x*`,
+          `  - *Price:* *${(item.price || 0).toLocaleString()} ETB*`,
+          item.selectedColor ? `  - *Color / Finish Choice:* *${item.selectedColor}*` : null,
+          item.category ? `  - *Category:* *${item.category}*` : null,
+          item.dimensions ? `  - *Dimensions / Size:* *${item.dimensions.replace(/\n/g, ', ')}*` : null,
+          item.structure ? `  - *Structure / Material:* *${item.structure.replace(/\n/g, ', ')}*` : null,
+          item.finish ? `  - *Finish Specs:* *${item.finish.replace(/\n/g, ', ')}*` : null,
+        ].filter(Boolean);
+
+        return lines.join("\n");
+      })
+      .join("\n\n");
+
+    const totalSection = `\n\n━━━━━━━━━━━━━━━━━━━━━━\n💰 *GRAND TOTAL:* *${(cartTotal || 0).toLocaleString()} ETB*\n━━━━━━━━━━━━━━━━━━━━━━`;
+    
+    const fullMessage = header + itemsDetails + totalSection;
+
+    window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(fullMessage)}`, "_blank");
 
     // Track sales in database silently
     incrementSalesCount(cartItems);
