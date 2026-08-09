@@ -43,6 +43,11 @@ export async function serverAddProduct(newProduct) {
         bestSeller: payload.bestSeller,
         isNew: payload.isNew,
         outOfStock: payload.outOfStock,
+        swatches: payload.swatches,
+        allowCustomColor: payload.allowCustomColor,
+        structure: payload.structure,
+        finish: payload.finish,
+        dimensions: payload.dimensions,
       };
       Object.keys(basePayload).forEach(key => basePayload[key] === undefined && delete basePayload[key]);
 
@@ -106,6 +111,11 @@ export async function serverUpdateProduct(id, updatedData) {
         bestSeller: payload.bestSeller,
         isNew: payload.isNew,
         outOfStock: payload.outOfStock,
+        swatches: payload.swatches,
+        allowCustomColor: payload.allowCustomColor,
+        structure: payload.structure,
+        finish: payload.finish,
+        dimensions: payload.dimensions,
       };
       Object.keys(basePayload).forEach(key => basePayload[key] === undefined && delete basePayload[key]);
 
