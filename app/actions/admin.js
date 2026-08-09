@@ -21,12 +21,40 @@ export async function serverAddProduct(newProduct) {
     await checkAdmin();
     if (!supabaseAdmin) throw new Error("Supabase Admin client not configured.");
     
+    const payload = { ...newProduct };
+    delete payload.showInHero;
+
     const { data, error } = await supabaseAdmin
       .from("products")
-      .insert([newProduct])
+      .insert([payload])
       .select();
       
-    if (error) throw error;
+    if (error) {
+      console.warn("[serverAddProduct] Insert with extended fields failed, retrying with base fields:", error.message);
+      const basePayload = {
+        id: payload.id,
+        name: payload.name,
+        price: payload.price,
+        description: payload.description,
+        category: payload.category,
+        type: payload.type,
+        images: payload.images,
+        featured: payload.featured,
+        bestSeller: payload.bestSeller,
+        isNew: payload.isNew,
+        outOfStock: payload.outOfStock,
+      };
+      Object.keys(basePayload).forEach(key => basePayload[key] === undefined && delete basePayload[key]);
+
+      const { data: retryData, error: retryError } = await supabaseAdmin
+        .from("products")
+        .insert([basePayload])
+        .select();
+
+      if (retryError) throw retryError;
+      return { success: true, data: retryData };
+    }
+
     return { success: true, data };
   } catch (error) {
     console.error("[serverAddProduct] Error:", error.message);
@@ -39,9 +67,12 @@ export async function serverUpdateProduct(id, updatedData) {
     await checkAdmin();
     if (!supabaseAdmin) throw new Error("Supabase Admin client not configured.");
     
+    const payload = { ...updatedData };
+    delete payload.showInHero;
+
     // If we are setting this product to featured, we need to un-feature others in the category
-    if (updatedData.featured === true) {
-      let category = updatedData.category;
+    if (payload.featured === true) {
+      let category = payload.category;
       if (!category) {
         const { data: p } = await supabaseAdmin.from("products").select("category").eq("id", id).single();
         category = p?.category;
@@ -58,11 +89,36 @@ export async function serverUpdateProduct(id, updatedData) {
 
     const { data, error } = await supabaseAdmin
       .from("products")
-      .update(updatedData)
+      .update(payload)
       .eq("id", id)
       .select();
       
-    if (error) throw error;
+    if (error) {
+      console.warn("[serverUpdateProduct] Update with extended fields failed, retrying with base fields:", error.message);
+      const basePayload = {
+        name: payload.name,
+        price: payload.price,
+        description: payload.description,
+        category: payload.category,
+        type: payload.type,
+        images: payload.images,
+        featured: payload.featured,
+        bestSeller: payload.bestSeller,
+        isNew: payload.isNew,
+        outOfStock: payload.outOfStock,
+      };
+      Object.keys(basePayload).forEach(key => basePayload[key] === undefined && delete basePayload[key]);
+
+      const { data: retryData, error: retryError } = await supabaseAdmin
+        .from("products")
+        .update(basePayload)
+        .eq("id", id)
+        .select();
+
+      if (retryError) throw retryError;
+      return { success: true, data: retryData };
+    }
+
     return { success: true, data };
   } catch (error) {
     console.error("[serverUpdateProduct] Error:", error.message);
