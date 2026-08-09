@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { useProducts } from "@/context/ProductContext";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { PiPlus, PiPencilSimple, PiTrash, PiMagnifyingGlassLight } from "react-icons/pi";
 import ProductFormModal from "@/components/admin/ProductFormModal";
 
 export default function AdminProducts() {
   const { products, addProduct, updateProduct, deleteProduct, isLoaded } = useProducts();
+  const { heroProductId, updateHeroProduct } = useSiteSettings();
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
@@ -17,6 +19,19 @@ export default function AdminProducts() {
     (p.name || "").toLowerCase().includes(searchQuery.toLowerCase()) || 
     (p.category || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleToggleHero = (product) => {
+    const isCurrentlyHero = heroProductId === product.id;
+    if (isCurrentlyHero) {
+      // Turn off hero
+      updateHeroProduct(null);
+      updateProduct(product.id, { ...product, featured: false });
+    } else {
+      // Set this product as hero — pass full snapshot so reload is instant
+      updateHeroProduct({ ...product, featured: true });
+      updateProduct(product.id, { ...product, featured: true });
+    }
+  };
 
   const handleAddNew = () => {
     setEditingProduct(null);
@@ -117,14 +132,40 @@ export default function AdminProducts() {
                       {(product.price || 0).toLocaleString()} ETB
                     </td>
                     <td className="py-4 px-6">
-                      <div className="flex gap-2">
-                        {product.bestSeller && <span className="w-2 h-2 rounded-full bg-gold" title="Best Seller"></span>}
-                        {product.isNew && <span className="w-2 h-2 rounded-full bg-primary" title="New Arrival"></span>}
-                        {!product.bestSeller && !product.isNew && <span className="w-2 h-2 rounded-full bg-secondary/20" title="Standard"></span>}
+                      <div className="flex flex-col gap-1">
+                        {product.outOfStock ? (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-700 border border-amber-500/20 w-fit">
+                            Out of Stock
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 w-fit">
+                            In Stock
+                          </span>
+                        )}
+                        <div className="flex gap-1.5 mt-0.5">
+                          {product.bestSeller && <span className="w-2 h-2 rounded-full bg-gold" title="Best Seller"></span>}
+                          {product.isNew && <span className="w-2 h-2 rounded-full bg-primary" title="New Arrival"></span>}
+                        </div>
                       </div>
                     </td>
                     <td className="py-4 px-6 text-right">
-                      <div className="flex items-center justify-end gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-end gap-2">
+                        {(() => {
+                          const isHero = heroProductId === product.id || (product.featured && !heroProductId);
+                          return (
+                            <button
+                              onClick={() => handleToggleHero(product)}
+                              className={`px-3 py-1 rounded-full font-secondary text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 border ${
+                                isHero
+                                  ? "bg-gold/15 text-gold border-gold/40 shadow-sm"
+                                  : "bg-secondary/5 text-secondary/40 border-secondary/10 hover:border-gold/30 hover:text-gold"
+                              }`}
+                              title="Toggle Hero Spotlight"
+                            >
+                              {isHero ? "Hero Active ⭐" : "Set Hero"}
+                            </button>
+                          );
+                        })()}
                         <button
                           onClick={() => handleEdit(product)}
                           className="p-2 text-secondary/70 lg:text-secondary/50 hover:text-gold hover:bg-gold/10 rounded-lg transition-colors"
@@ -173,7 +214,20 @@ export default function AdminProducts() {
                 <div className="flex-1 flex flex-col justify-between">
                   <div>
                     <h3 className="font-primary text-[16px] text-secondary leading-tight line-clamp-1">{product.name}</h3>
-                    <p className="font-secondary text-[10px] text-secondary/50 uppercase tracking-widest mt-1 bg-secondary/5 inline-block px-2 py-0.5 rounded-full">{product.category}</p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      <span className="font-secondary text-[10px] text-secondary/50 uppercase tracking-widest bg-secondary/5 px-2 py-0.5 rounded-full">
+                        {product.category}
+                      </span>
+                      {product.outOfStock ? (
+                        <span className="font-secondary text-[10px] text-amber-700 font-bold uppercase tracking-widest bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
+                          Out of Stock
+                        </span>
+                      ) : (
+                        <span className="font-secondary text-[10px] text-emerald-700 font-bold uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                          In Stock
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center justify-between mt-2">
                     <span className="font-secondary text-[13px] font-semibold text-secondary">{(product.price || 0).toLocaleString()} ETB</span>

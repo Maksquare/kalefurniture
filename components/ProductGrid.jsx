@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
-import { PiShoppingCartLight, PiStarFill, PiStarLight, PiArrowLeftLight, PiArrowRightLight } from "react-icons/pi";
+import { PiShoppingCartLight, PiStarFill, PiStarLight, PiArrowLeftLight, PiArrowRightLight, PiHammerLight } from "react-icons/pi";
 import { useProducts } from "@/context/ProductContext";
 import { useCart } from "@/context/CartContext";
 import ProductModal from "./ProductModal";
@@ -107,6 +107,12 @@ const ProductGrid = ({ title = "Trending Finds", subtitle = "Handpicked furnitur
                     alt={product.name}
                     className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-700"
                   />
+                  {/* Out of stock badge overlay */}
+                  {product.outOfStock && (
+                    <div className="absolute top-4 left-4 px-3 py-1 bg-amber-600/90 text-white backdrop-blur-md rounded-full font-secondary text-[10px] font-bold tracking-widest uppercase border border-amber-500/30 shadow-md">
+                      Made To Order
+                    </div>
+                  )}
                   {/* Hover Overlay */}
                   <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                 </div>
@@ -142,16 +148,29 @@ const ProductGrid = ({ title = "Trending Finds", subtitle = "Handpicked furnitur
                     <span className="font-secondary text-[16px] font-semibold text-secondary">
                       {product.price.toLocaleString()} ETB
                     </span>
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        addToCart(product);
-                      }}
-                      className="text-secondary/60 hover:text-gold transition-colors flex items-center gap-1.5 font-secondary text-[11px] uppercase tracking-wider font-bold"
-                    >
-                      <PiShoppingCartLight size={18} />
-                      <span className="hidden sm:inline">Add</span>
-                    </button>
+                    {product.outOfStock ? (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedProduct(product);
+                        }}
+                        className="text-amber-700 hover:text-amber-800 transition-colors flex items-center gap-1 font-secondary text-[11px] uppercase tracking-wider font-bold bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20"
+                      >
+                        <PiHammerLight size={15} />
+                        <span>Order</span>
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addToCart(product);
+                        }}
+                        className="text-secondary/60 hover:text-gold transition-colors flex items-center gap-1.5 font-secondary text-[11px] uppercase tracking-wider font-bold"
+                      >
+                        <PiShoppingCartLight size={18} />
+                        <span className="hidden sm:inline">Add</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               </motion.div>

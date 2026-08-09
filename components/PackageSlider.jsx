@@ -1,233 +1,413 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import useEmblaCarousel from "embla-carousel-react";
-import { PiArrowRightLight, PiArrowLeftLight, PiShoppingCartLight } from "react-icons/pi";
+import { useState, useEffect, useCallback, useRef } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ShoppingCart,
+  Check,
+  Crown,
+  Sparkles,
+  Truck,
+  ShieldCheck,
+  Package,
+  ArrowRight,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "@/context/CartContext";
-
 import { usePackages } from "@/context/PackageContext";
 
-// Inner component to manage the state of each package's active item
-const PackageView = ({ pkg, isActive }) => {
+/* ─────────────────────────────────────────
+   PACKAGE CARD
+───────────────────────────────────────── */
+const PackageCard = ({ pkg }) => {
   const { addToCart } = useCart();
-  const [activeItemIdx, setActiveItemIdx] = useState(0);
+  const [isAdded, setIsAdded] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(0);
 
-  const activeItem = pkg.items[activeItemIdx];
+  const activeItem = pkg.items?.[activeIdx] || pkg.items?.[0];
+  const isJpeg = (url) => url && (url.endsWith(".jpg") || url.endsWith(".jpeg"));
+
+  const handleAdd = () => {
+    if (isAdded) return;
+    addToCart({
+      id: pkg.id,
+      name: pkg.name,
+      price: pkg.price,
+      images: [pkg.mainImage || activeItem?.image],
+      quantity: 1,
+    });
+    setIsAdded(true);
+    setTimeout(() => setIsAdded(false), 2500);
+  };
 
   return (
-    <div 
-      className="w-full flex flex-col transition-opacity duration-700 bg-white"
-      style={{ opacity: isActive ? 1 : 0, pointerEvents: isActive ? 'auto' : 'none' }}
-    >
-      {/* --- TOP SECTION (Hero) --- */}
-      <div className="relative w-full min-h-[50vh] lg:min-h-[55vh] flex flex-col lg:flex-row overflow-hidden pb-8 lg:pb-0">
+    <article className="group snap-start shrink-0 w-[88vw] sm:w-[400px] lg:w-[420px] bg-white rounded-3xl border border-secondary/10 overflow-hidden flex flex-col transition-shadow duration-300 hover:shadow-[0_24px_60px_-20px_rgba(0,0,0,0.14)]">
 
-        {/* Left Text Content */}
-        <div className="relative z-10 w-full lg:w-[45%] pl-6 pr-6 pt-12 lg:pl-16 lg:pt-20 flex flex-col">
+      {/* Hero Image Stage */}
+      <div className="relative aspect-[4/3] overflow-hidden bg-[#FAFAFA]">
+        <AnimatePresence mode="wait">
+          <motion.img
+            key={activeItem?.image || pkg.mainImage}
+            src={activeItem?.image || pkg.mainImage}
+            alt={activeItem?.name || pkg.name}
+            initial={{ opacity: 0, scale: 1.04 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.04 }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            className={`absolute inset-0 w-full h-full transition-transform duration-500 group-hover:scale-[1.03] ${
+              isJpeg(activeItem?.image || pkg.mainImage)
+                ? "object-cover"
+                : "object-contain mix-blend-multiply p-6"
+            }`}
+          />
+        </AnimatePresence>
 
+        {/* Badges */}
+        <span className="absolute top-4 left-4 px-3 py-1 rounded-full bg-white/90 backdrop-blur text-secondary font-secondary text-[10px] font-bold uppercase tracking-[0.14em] border border-secondary/10 flex items-center gap-1.5">
+          <Crown size={11} className="text-gold" />
+          {pkg.collection}
+        </span>
 
-          <h1 className="font-primary text-[50px] md:text-[64px] lg:text-[80px] font-normal leading-[1.05] tracking-tight text-secondary mb-2">
-            {pkg.name.split(' ').slice(0, 2).join(' ')} <br/>
-            {pkg.name.split(' ').slice(2).join(' ')}
-          </h1>
-          <h3 className="font-secondary text-[13px] tracking-[0.2em] uppercase text-secondary/50 font-bold mb-10">
-            {pkg.collection}
-          </h3>
-          <p className="font-secondary text-[15px] leading-relaxed text-secondary/70 max-w-[320px]">
-            {pkg.description}
-          </p>
+        <span className="absolute top-4 right-4 px-3 py-1 rounded-full bg-gold text-white font-secondary text-[10px] font-bold uppercase tracking-[0.1em] flex items-center gap-1.5">
+          <Package size={11} />
+          {pkg.items?.length || 0} Pieces
+        </span>
 
-
-        </div>
-
-        {/* Right Image Content */}
-        <div className="relative z-10 w-full lg:w-[55%] flex items-end justify-center px-4 lg:px-0 h-[350px] lg:h-auto overflow-hidden">
-            <AnimatePresence mode="wait">
-              <motion.div 
-                key={activeItem.image}
-                initial={{ opacity: 0, scale: 0.96, filter: "blur(8px)" }}
-                animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                exit={{ opacity: 0, scale: 1.02, filter: "blur(8px)" }}
-                transition={{ duration: 0.8, ease: [0.25, 1, 0.5, 1] }}
-                className="absolute bottom-0 w-full max-w-[800px] h-[300px] lg:h-[450px] flex items-end justify-center"
-              >
-                <img 
-                  src={activeItem.image} 
-                  alt={activeItem.name} 
-                  className="w-full h-full object-contain object-bottom drop-shadow-[0_20px_50px_rgba(0,0,0,0.15)] mix-blend-multiply"
-                />
-              </motion.div>
-            </AnimatePresence>
-        </div>
-
-
-      </div>
-
-      {/* --- BOTTOM SECTION (Specs & Details) --- */}
-      <div className="w-full bg-[#EBE8DF] border-t border-secondary/20 pt-8 pb-12 relative z-20">
-        <div className="container px-6 lg:px-16 flex flex-col lg:flex-row gap-12">
-          
-          {/* Left: Detail Images (Stacked Cards UI) */}
-          <div className="w-full lg:w-[50%] flex flex-col items-center justify-start min-h-[350px] relative pb-8 lg:pb-0 pt-8 lg:pt-16">
-            <div className="relative w-[220px] h-[260px] flex items-center justify-center">
-              {pkg.items.map((item, i) => {
-                const offset = i - activeItemIdx; // distance from active item
-                
-                const rotate = offset * 12; // degrees
-                const x = offset * 45; // px
-                const y = Math.abs(offset) * 8; // px (drops down slightly to enhance the arc)
-                const scale = 1 - Math.abs(offset) * 0.05;
-                const zIndex = 10 - Math.abs(offset);
-
-                return (
-                  <motion.div 
-                    key={i} 
-                    onClick={() => setActiveItemIdx(i)}
-                    initial={false}
-                    animate={{ 
-                      rotate: rotate, 
-                      x: x, 
-                      y: y,
-                      scale: scale, 
-                      zIndex: zIndex 
-                    }}
-                    transition={{ type: "spring", stiffness: 150, damping: 22, mass: 0.8 }}
-                    className="absolute w-[220px] h-[260px] bg-white rounded-3xl p-2 shadow-[0_20px_40px_rgba(0,0,0,0.08)] border border-black/5 cursor-pointer hover:-translate-y-2 transition-transform duration-300"
-                  >
-                    <div className="w-full h-full rounded-2xl overflow-hidden bg-black/5">
-                      <img src={item.image} alt={item.name} className="w-full h-full object-cover mix-blend-multiply" />
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-            <p className="font-secondary text-[10px] text-secondary/40 mt-10 lg:mt-12 text-center uppercase tracking-[0.2em] z-20">
-              Click cards to explore bundle
-            </p>
-          </div>
-
-          {/* Right: Technical Specs */}
-          <div className="w-full lg:w-[50%] flex flex-col gap-6 justify-center">
-            <p className="font-secondary text-[10px] uppercase tracking-[0.2em] text-secondary/50 mb-2">
-              Select an item to view details
-            </p>
+        {/* Piece Thumb Strip (only if multiple items) */}
+        {pkg.items?.length > 1 && (
+          <div className="absolute bottom-3 inset-x-3 flex gap-2">
             {pkg.items.map((item, i) => (
-              <div 
-                key={i} 
-                onClick={() => setActiveItemIdx(i)}
-                className={`flex flex-col sm:flex-row justify-between items-start gap-6 border-b border-secondary/10 pb-6 cursor-pointer transition-all duration-300 group ${activeItemIdx === i ? 'opacity-100' : 'opacity-40 hover:opacity-100'}`}
-              >
-                {/* Text Specs */}
-                <div className="w-full sm:w-1/2">
-                  <h4 className={`font-secondary text-[14px] font-bold tracking-widest uppercase mb-4 border-b pb-2 inline-block transition-colors duration-500 ${activeItemIdx === i ? 'text-gold border-gold/30' : 'text-secondary border-secondary/20'}`}>
-                    {item.name}
-                  </h4>
-                  <ul className="flex flex-col gap-1">
-                    {Object.entries(item.specs).map(([key, value]) => (
-                      <li key={key} className="font-secondary text-[12px] text-secondary/80 flex gap-2">
-                        <span className="font-medium min-w-[70px]">{key}:</span> 
-                        <span>{value}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-
-              </div>
+              <button
+                key={i}
+                onClick={() => setActiveIdx(i)}
+                className={`flex-1 h-1.5 rounded-full transition-all duration-300 ${
+                  activeIdx === i ? "bg-gold" : "bg-white/50 hover:bg-white/80"
+                }`}
+                aria-label={`View ${item.name}`}
+              />
             ))}
           </div>
-        </div>
+        )}
+      </div>
 
-        {/* Footer & Add to Cart */}
-        <div className="container px-6 lg:px-16 mt-16 flex flex-col md:flex-row justify-between items-center border-t border-secondary/20 pt-6 gap-6 relative z-30">
-          <div className="hidden md:block w-32"></div>
-          
-          <div className="flex flex-col items-center gap-4">
-            <p className="font-secondary text-[12px] tracking-[0.2em] uppercase text-secondary font-bold">
-              {pkg.collection} BY NATURE. TIMELESS BY DESIGN.
-            </p>
-            
-            <button 
-              onClick={() => addToCart({ id: pkg.id, name: pkg.name, price: pkg.price, images: [pkg.mainImage], quantity: 1 })}
-              className="px-8 py-3 bg-secondary text-white font-secondary text-[11px] uppercase tracking-widest hover:bg-gold transition-colors flex items-center gap-2"
-            >
-              <PiShoppingCartLight size={16} />
-              Add Complete Package - {pkg.price.toLocaleString('en-US')} ETB
-            </button>
+      {/* Content */}
+      <div className="flex flex-col flex-1 p-5 sm:p-6">
+
+        {/* Current piece label */}
+        {pkg.items?.length > 1 && (
+          <p className="font-secondary text-[10px] font-bold uppercase tracking-[0.15em] text-gold mb-1">
+            {activeItem?.name} · {activeIdx + 1}/{pkg.items.length}
+          </p>
+        )}
+
+        <h3 className="font-primary text-[22px] sm:text-[24px] text-secondary font-normal leading-tight mb-3">
+          {pkg.name}
+        </h3>
+
+        {pkg.description && (
+          <p className="font-secondary text-[12.5px] text-secondary/60 leading-relaxed mb-4 line-clamp-2">
+            {pkg.description}
+          </p>
+        )}
+
+        {/* Items checklist */}
+        {pkg.items?.length > 0 && (
+          <ul className="space-y-1.5 mb-5">
+            {pkg.items.map((item, i) => (
+              <li
+                key={i}
+                onClick={() => setActiveIdx(i)}
+                className={`flex items-center gap-2 font-secondary text-[12px] cursor-pointer transition-colors duration-150 ${
+                  activeIdx === i ? "text-secondary font-semibold" : "text-secondary/55 hover:text-secondary/80"
+                }`}
+              >
+                <Check
+                  size={12}
+                  strokeWidth={2.5}
+                  className={activeIdx === i ? "text-gold" : "text-secondary/30"}
+                />
+                {item.name}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {/* Specs for active item */}
+        {activeItem?.specs && (
+          <div className="flex flex-wrap gap-1.5 mb-5 pb-4 border-b border-secondary/8">
+            {Object.entries(activeItem.specs).slice(0, 4).map(([k, v]) => (
+              <span key={k} className="px-2 py-0.5 rounded-full bg-secondary/5 font-secondary text-[10px] text-secondary/60">
+                {k}: {v}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Price + CTA */}
+        <div className="mt-auto flex items-center justify-between gap-3">
+          <div>
+            <span className="font-secondary text-[10px] font-bold uppercase tracking-[0.1em] text-secondary/40 block mb-0.5">
+              Bundle Price
+            </span>
+            <span className="font-primary text-[22px] sm:text-[24px] text-gold font-semibold leading-none">
+              {(pkg.price || 0).toLocaleString()} ETB
+            </span>
           </div>
 
-          <div className="hidden md:block w-32"></div>
+          <button
+            onClick={handleAdd}
+            disabled={isAdded}
+            className={`h-11 px-5 rounded-full font-secondary text-[11px] font-bold uppercase tracking-widest flex items-center gap-2 shrink-0 transition-all duration-300 ${
+              isAdded
+                ? "bg-emerald-600 text-white"
+                : "bg-gold text-primary shadow-[0_4px_18px_rgba(217,182,110,0.4)] hover:shadow-[0_6px_24px_rgba(217,182,110,0.5)] active:scale-95"
+            }`}
+          >
+            {isAdded ? (
+              <>
+                <Check size={15} strokeWidth={2.5} />
+                <span>Added</span>
+              </>
+            ) : (
+              <>
+                <ShoppingCart size={15} />
+                <span>Add</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Warranty badge */}
+        <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-secondary/8">
+          <ShieldCheck size={13} className="text-gold shrink-0" />
+          <span className="font-secondary text-[11px] text-secondary/50">10-Year Structural Warranty</span>
+        </div>
+
+      </div>
+    </article>
+  );
+};
+
+/* ─────────────────────────────────────────
+   SKELETON CARD
+───────────────────────────────────────── */
+const SkeletonCard = () => (
+  <div className="snap-start shrink-0 w-[88vw] sm:w-[400px] lg:w-[420px] rounded-3xl border border-secondary/10 overflow-hidden animate-pulse">
+    <div className="aspect-[4/3] bg-secondary/5" />
+    <div className="p-5 sm:p-6 space-y-3">
+      <div className="h-3 w-1/3 bg-secondary/8 rounded" />
+      <div className="h-5 w-2/3 bg-secondary/10 rounded" />
+      <div className="h-3 w-full bg-secondary/5 rounded" />
+      <div className="h-3 w-5/6 bg-secondary/5 rounded" />
+      <div className="h-3 w-4/6 bg-secondary/5 rounded" />
+      <div className="flex justify-between mt-4 pt-4 border-t border-secondary/8">
+        <div className="h-6 w-1/3 bg-secondary/8 rounded" />
+        <div className="h-9 w-24 bg-gold/20 rounded-full" />
+      </div>
+    </div>
+  </div>
+);
+
+/* ─────────────────────────────────────────
+   EMPTY STATE
+───────────────────────────────────────── */
+const EmptyState = () => (
+  <div className="w-full min-h-[300px] flex flex-col items-center justify-center py-16 text-center px-4">
+    <div className="w-14 h-14 rounded-2xl bg-gold/10 text-gold flex items-center justify-center mb-4">
+      <Package size={24} />
+    </div>
+    <p className="font-primary text-[20px] text-secondary mb-2">No packages yet</p>
+    <p className="font-secondary text-[13px] text-secondary/50 max-w-xs leading-relaxed">
+      Packages created from the admin dashboard will appear here automatically.
+    </p>
+  </div>
+);
+
+/* ─────────────────────────────────────────
+   GUARANTEE STRIP
+───────────────────────────────────────── */
+const guarantees = [
+  { icon: Crown, label: "Solid Ash Wood", desc: "Kiln-dried hardwood frames for lifetime stability." },
+  { icon: Sparkles, label: "Bespoke Finishes", desc: "Custom fabrics and wood stains on request." },
+  { icon: Truck, label: "White-Glove Delivery", desc: "Complimentary assembly and packaging removal." },
+  { icon: ShieldCheck, label: "10-Year Warranty", desc: "Backed by Kal Furniture master artisans." },
+];
+
+const GuaranteeStrip = () => (
+  <div className="container px-4 sm:px-6 lg:px-12 mx-auto mt-12 sm:mt-16">
+    <div className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-10 border border-secondary/10 shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+      {guarantees.map(({ icon: Icon, label, desc }) => (
+        <div key={label} className="flex items-start gap-3.5">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gold/10 text-gold flex items-center justify-center shrink-0">
+            <Icon size={20} />
+          </div>
+          <div>
+            <h5 className="font-primary text-[15px] sm:text-[17px] text-secondary mb-0.5">{label}</h5>
+            <p className="font-secondary text-[11px] sm:text-[12px] text-secondary/60 leading-relaxed">{desc}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+/* ─────────────────────────────────────────
+   MAIN SLIDER
+───────────────────────────────────────── */
+export default function PackageSlider() {
+  const { packages, isLoaded } = usePackages();
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(true);
+  const trackRef = useRef(null);
+
+  /* Scroll state sync */
+  const updateScrollState = useCallback(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    setCanScrollPrev(el.scrollLeft > 8);
+    setCanScrollNext(el.scrollLeft + el.clientWidth < el.scrollWidth - 8);
+
+    const children = Array.from(el.children);
+    let closest = 0;
+    let minDist = Infinity;
+    children.forEach((child, i) => {
+      const dist = Math.abs(child.offsetLeft - el.scrollLeft);
+      if (dist < minDist) { minDist = dist; closest = i; }
+    });
+    setActiveIndex(closest);
+  }, []);
+
+  useEffect(() => {
+    updateScrollState();
+    const el = trackRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", updateScrollState, { passive: true });
+    window.addEventListener("resize", updateScrollState);
+    return () => {
+      el.removeEventListener("scroll", updateScrollState);
+      window.removeEventListener("resize", updateScrollState);
+    };
+  }, [updateScrollState, isLoaded]);
+
+  const scrollByCard = (dir) => {
+    const el = trackRef.current;
+    if (!el) return;
+    const card = el.children[0];
+    if (!card) return;
+    const gap = 24;
+    el.scrollBy({ left: dir * (card.getBoundingClientRect().width + gap), behavior: "smooth" });
+  };
+
+  const scrollToIndex = (i) => {
+    const el = trackRef.current;
+    const card = el?.children[i];
+    if (!el || !card) return;
+    el.scrollTo({ left: card.offsetLeft, behavior: "smooth" });
+  };
+
+  const onKeyDown = (e) => {
+    if (e.key === "ArrowRight") { e.preventDefault(); scrollByCard(1); }
+    if (e.key === "ArrowLeft")  { e.preventDefault(); scrollByCard(-1); }
+  };
+
+  return (
+    <section aria-label="Curated furniture packages" className="w-full">
+
+      {/* Count + Controls row */}
+      <div className="container px-4 sm:px-6 lg:px-12 mx-auto flex items-center justify-between mb-5 sm:mb-8">
+        <p className="font-secondary text-[12px] text-secondary/50 tracking-[0.04em]">
+          {!isLoaded
+            ? "Loading…"
+            : `${packages.length} package${packages.length === 1 ? "" : "s"} available`}
+        </p>
+
+        {/* Desktop arrows */}
+        {isLoaded && packages.length > 1 && (
+          <div className="hidden sm:flex items-center gap-2">
+            <button
+              onClick={() => scrollByCard(-1)}
+              disabled={!canScrollPrev}
+              aria-label="Previous packages"
+              className="w-10 h-10 rounded-full border border-secondary/15 flex items-center justify-center text-secondary transition-all duration-200 hover:border-gold hover:text-gold disabled:opacity-25 disabled:pointer-events-none"
+            >
+              <ChevronLeft size={17} strokeWidth={1.75} />
+            </button>
+            <button
+              onClick={() => scrollByCard(1)}
+              disabled={!canScrollNext}
+              aria-label="Next packages"
+              className="w-10 h-10 rounded-full border border-secondary/15 flex items-center justify-center text-secondary transition-all duration-200 hover:border-gold hover:text-gold disabled:opacity-25 disabled:pointer-events-none"
+            >
+              <ChevronRight size={17} strokeWidth={1.75} />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Edge-fade + Track */}
+      <div className="relative">
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-6 sm:w-12 bg-gradient-to-r from-[#FAF8F5] to-transparent z-10" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-6 sm:w-12 bg-gradient-to-l from-[#FAF8F5] to-transparent z-10" />
+
+        <div
+          ref={trackRef}
+          tabIndex={0}
+          onKeyDown={onKeyDown}
+          aria-label="Swipe or use arrow keys to browse packages"
+          className="flex gap-5 sm:gap-6 overflow-x-auto snap-x snap-mandatory scrollbar-none px-4 sm:px-6 lg:px-12 pb-4 focus-visible:outline-none"
+        >
+          {!isLoaded
+            ? Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)
+            : packages.length === 0
+            ? <EmptyState />
+            : packages.map((pkg) => <PackageCard key={pkg.id} pkg={pkg} />)
+          }
         </div>
       </div>
 
-    </div>
-  );
-};
-
-const PackageSlider = () => {
-  const [emblaRef, emblaApi] = useEmblaCarousel({ 
-    loop: true,
-    watchDrag: false // Disable drag to prevent accidental swiping of this complex layout
-  });
-  
-  const { packages, isLoaded } = usePackages();
-  const [selectedIndex, setSelectedIndex] = useState(0);
-
-  const scrollPrev = useCallback(() => emblaApi && emblaApi.scrollPrev(), [emblaApi]);
-  const scrollNext = useCallback(() => emblaApi && emblaApi.scrollNext(), [emblaApi]);
-
-  const onSelect = useCallback(() => {
-    if (!emblaApi) return;
-    setSelectedIndex(emblaApi.selectedScrollSnap());
-  }, [emblaApi]);
-
-  useEffect(() => {
-    if (!emblaApi) return;
-    onSelect();
-    emblaApi.on("select", onSelect);
-  }, [emblaApi, onSelect]);
-
-  return (
-    <div className="relative w-full overflow-hidden" ref={emblaRef}>
-      {isLoaded && packages.length === 0 ? (
-        <div className="flex items-center justify-center min-h-[50vh] text-secondary/60">No packages found.</div>
-      ) : (
-      <>
-        <div className="flex touch-pan-y">
-          {packages.map((pkg, index) => {
-          const isActive = index === selectedIndex;
-          
-          return (
-            <div 
-              key={pkg.id} 
-              className="relative flex-[0_0_100%] min-w-0"
-            >
-              <PackageView pkg={pkg} isActive={isActive} />
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Global Slider Navigation (Floats over the slider) */}
-      <div className="absolute top-[25vh] lg:top-[28vh] -translate-y-1/2 w-full flex justify-between px-4 lg:px-8 pointer-events-none z-50">
-        <button 
-          onClick={scrollPrev}
-          className="w-14 h-14 rounded-full flex items-center justify-center text-secondary/40 hover:text-secondary hover:bg-secondary/5 transition-all duration-500 bg-transparent pointer-events-auto"
-        >
-          <PiArrowLeftLight size={28} />
-        </button>
-        <button 
-          onClick={scrollNext}
-          className="w-14 h-14 rounded-full flex items-center justify-center text-secondary/40 hover:text-secondary hover:bg-secondary/5 transition-all duration-500 bg-transparent pointer-events-auto"
-        >
-          <PiArrowRightLight size={28} />
-        </button>
-      </div>
-      </>
+      {/* Dot indicators */}
+      {isLoaded && packages.length > 1 && (
+        <div className="flex justify-center gap-2 mt-6" aria-hidden="true">
+          {packages.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => scrollToIndex(i)}
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                i === activeIndex ? "w-6 bg-gold" : "w-1.5 bg-secondary/15 hover:bg-secondary/30"
+              }`}
+              aria-label={`Go to package ${i + 1}`}
+            />
+          ))}
+        </div>
       )}
-    </div>
-  );
-};
 
-export default PackageSlider;
+      {/* Mobile prev/next under track */}
+      {isLoaded && packages.length > 1 && (
+        <div className="flex sm:hidden items-center justify-center gap-3 mt-5">
+          <button
+            onClick={() => scrollByCard(-1)}
+            disabled={!canScrollPrev}
+            className="w-11 h-11 rounded-full border border-secondary/15 flex items-center justify-center text-secondary disabled:opacity-25"
+            aria-label="Previous packages"
+          >
+            <ChevronLeft size={17} strokeWidth={1.75} />
+          </button>
+          <button
+            onClick={() => scrollByCard(1)}
+            disabled={!canScrollNext}
+            className="w-11 h-11 rounded-full border border-secondary/15 flex items-center justify-center text-secondary disabled:opacity-25"
+            aria-label="Next packages"
+          >
+            <ChevronRight size={17} strokeWidth={1.75} />
+          </button>
+        </div>
+      )}
+
+      {/* Artisanal Guarantee Strip */}
+      {isLoaded && <GuaranteeStrip />}
+
+    </section>
+  );
+}

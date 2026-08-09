@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PiX, PiUploadSimple, PiTrash } from "react-icons/pi";
 import { compressImage } from "@/lib/imageUtils";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
 
 export default function ProductFormModal({ isOpen, onClose, onSubmit, initialData }) {
   const [formData, setFormData] = useState({
@@ -18,6 +19,8 @@ export default function ProductFormModal({ isOpen, onClose, onSubmit, initialDat
     bestSeller: false,
     isNew: false,
     featured: false,
+    showInHero: false,
+    outOfStock: false,
   });
 
   useEffect(() => {
@@ -26,6 +29,8 @@ export default function ProductFormModal({ isOpen, onClose, onSubmit, initialDat
         ...initialData,
         price: initialData.price.toString(),
         images: initialData.images || [],
+        showInHero: initialData.showInHero || false,
+        outOfStock: initialData.outOfStock || false,
       });
     } else {
       setFormData({
@@ -40,19 +45,32 @@ export default function ProductFormModal({ isOpen, onClose, onSubmit, initialDat
         bestSeller: false,
         isNew: false,
         featured: false,
+        showInHero: false,
+        outOfStock: false,
       });
     }
   }, [initialData, isOpen]);
 
+  const { heroProductId, updateHeroProduct } = useSiteSettings();
+
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Parse the form data back into the expected object structure
     const submitData = {
       ...formData,
       price: Number(formData.price) || 0,
       images: formData.images,
     };
+
+    if (formData.showInHero) {
+      submitData.featured = true;
+      // Store full snapshot for zero-flash reload
+      updateHeroProduct({ ...submitData });
+    } else if (heroProductId === submitData.id) {
+      updateHeroProduct(null);
+    }
+
+    delete submitData.showInHero;
 
     onSubmit(submitData);
     onClose();
@@ -225,7 +243,7 @@ export default function ProductFormModal({ isOpen, onClose, onSubmit, initialDat
               </div>
 
               {/* Toggles */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-secondary/10">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-secondary/10">
                 <label className="flex items-center gap-3 cursor-pointer group">
                   <div className="relative">
                     <input type="checkbox" name="bestSeller" checked={formData.bestSeller} onChange={handleChange} className="sr-only" />
@@ -251,6 +269,28 @@ export default function ProductFormModal({ isOpen, onClose, onSubmit, initialDat
                     <div className={`absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform ${formData.featured ? 'translate-x-4' : 'translate-x-0'}`}></div>
                   </div>
                   <span className="font-secondary text-[12px] font-medium text-secondary/80 group-hover:text-secondary">Featured</span>
+                </label>
+
+                <label className="flex items-center gap-3 cursor-pointer group col-span-2 sm:col-span-1">
+                  <div className="relative">
+                    <input type="checkbox" name="showInHero" checked={formData.showInHero} onChange={handleChange} className="sr-only" />
+                    <div className={`w-10 h-6 rounded-full transition-colors ${formData.showInHero ? 'bg-gold' : 'bg-secondary/20'}`}></div>
+                    <div className={`absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform ${formData.showInHero ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                  </div>
+                  <span className="font-secondary text-[12px] font-bold text-gold group-hover:text-secondary flex items-center gap-1">
+                    Hero Spotlight ⭐
+                  </span>
+                </label>
+
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <div className="relative">
+                    <input type="checkbox" name="outOfStock" checked={formData.outOfStock} onChange={handleChange} className="sr-only" />
+                    <div className={`w-10 h-6 rounded-full transition-colors ${formData.outOfStock ? 'bg-amber-600' : 'bg-secondary/20'}`}></div>
+                    <div className={`absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform ${formData.outOfStock ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                  </div>
+                  <span className="font-secondary text-[12px] font-medium text-amber-700 font-semibold group-hover:text-amber-800 flex items-center gap-1">
+                    Out of Stock
+                  </span>
                 </label>
               </div>
 

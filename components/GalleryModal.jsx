@@ -128,15 +128,27 @@ const GalleryModal = ({ isOpen, onClose, category }) => {
                               View Details
                             </span>
                             
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                addToCart({ ...product, category });
-                              }}
-                              className="px-4 py-2 bg-white/[0.08] hover:bg-gold text-white hover:text-primary rounded-full transition-colors duration-300 font-secondary text-[10px] font-bold tracking-wider uppercase"
-                            >
-                              Add to Cart
-                            </button>
+                            {product.outOfStock ? (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedProduct({ ...product, category });
+                                }}
+                                className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-full transition-colors duration-300 font-secondary text-[10px] font-bold tracking-wider uppercase shadow-md"
+                              >
+                                Made to Order
+                              </button>
+                            ) : (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  addToCart({ ...product, category });
+                                }}
+                                className="px-4 py-2 bg-white/[0.08] hover:bg-gold text-white hover:text-primary rounded-full transition-colors duration-300 font-secondary text-[10px] font-bold tracking-wider uppercase"
+                              >
+                                Add to Cart
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>

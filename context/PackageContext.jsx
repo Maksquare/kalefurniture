@@ -48,13 +48,13 @@ const initialPackages = [
     accentColor: "#2A2A2A", // Dark charcoal
     items: [
       {
-        name: "ESSENTIAL BED",
-        specs: { Size: "King", Width: "180 cm", Length: "200 cm", Material: "Linen Blend", Frame: "Solid Ash" },
+        name: "MINIMALIST LOUNGE SOFA",
+        specs: { Width: "210 cm", Depth: "90 cm", Height: "78 cm", Fabric: "Structured Linen", Frame: "Solid Ash" },
         image: "/assets/img/living-room/living-room-12.jpg"
       },
       {
-        name: "NIGHTSTAND PAIR",
-        specs: { Width: "50 cm", Depth: "40 cm", Height: "55 cm", Drawers: "Soft-close", Material: "Matte Lacquer" },
+        name: "MODERN ACCENT CREDENZA",
+        specs: { Width: "160 cm", Depth: "45 cm", Height: "65 cm", Doors: "Push-to-open", Finish: "Smoked Oak" },
         image: "/assets/img/living-room/living-room-14.jpg"
       }
     ],

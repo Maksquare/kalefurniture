@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { PiShoppingCartLight, PiMagnifyingGlassLight, PiStarFill, PiFadersLight, PiXLight, PiCheckLight, PiCrownLight, PiSparkleLight, PiStarLight } from "react-icons/pi";
+import { PiShoppingCartLight, PiMagnifyingGlassLight, PiStarFill, PiFadersLight, PiXLight, PiCheckLight, PiCrownLight, PiSparkleLight, PiStarLight, PiHammerLight } from "react-icons/pi";
 import { useProducts } from "@/context/ProductContext";
 import { useCart } from "@/context/CartContext";
 import ProductModal from "./ProductModal";
@@ -298,8 +298,15 @@ const CollectionsGrid = () => {
                     <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                     
                     {/* Category Tag overlay */}
-                    <div className="absolute top-4 left-4 px-3 py-1 bg-white/80 backdrop-blur-md rounded-full font-secondary text-[10px] font-bold tracking-widest uppercase text-secondary">
-                      {product.category}
+                    <div className="absolute top-4 left-4 flex gap-1.5 flex-wrap">
+                      <div className="px-3 py-1 bg-white/80 backdrop-blur-md rounded-full font-secondary text-[10px] font-bold tracking-widest uppercase text-secondary">
+                        {product.category}
+                      </div>
+                      {product.outOfStock && (
+                        <div className="px-3 py-1 bg-amber-600/90 text-white backdrop-blur-md rounded-full font-secondary text-[10px] font-bold tracking-widest uppercase border border-amber-500/30 shadow-md">
+                          Made To Order
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -334,16 +341,29 @@ const CollectionsGrid = () => {
                       <span className="font-secondary text-[16px] font-semibold text-secondary">
                         {product.price.toLocaleString()} ETB
                       </span>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          addToCart(product);
-                        }}
-                        className="text-secondary/60 hover:text-gold transition-colors flex items-center gap-1.5 font-secondary text-[11px] uppercase tracking-wider font-bold"
-                      >
-                        <PiShoppingCartLight size={18} />
-                        <span>Add</span>
-                      </button>
+                      {product.outOfStock ? (
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedProduct(product);
+                          }}
+                          className="text-amber-700 hover:text-amber-800 transition-colors flex items-center gap-1 font-secondary text-[11px] uppercase tracking-wider font-bold bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20"
+                        >
+                          <PiHammerLight size={15} />
+                          <span>Order</span>
+                        </button>
+                      ) : (
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addToCart(product);
+                          }}
+                          className="text-secondary/60 hover:text-gold transition-colors flex items-center gap-1.5 font-secondary text-[11px] uppercase tracking-wider font-bold"
+                        >
+                          <PiShoppingCartLight size={18} />
+                          <span>Add</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 </motion.div>

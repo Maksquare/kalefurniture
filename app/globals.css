@@ -417,6 +417,17 @@ h1, h2, h3, h4, h5, h6 {
   background: rgba(217, 182, 110, 0.8);
 }
 
+/* Hide scrollbar utility */
+.scrollbar-none::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+.scrollbar-none {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
 @keyframes pulseGold {
   0%, 100% { box-shadow: 0 0 0 0 rgba(201,168,76,0.4); }
   50%       { box-shadow: 0 0 0 12px rgba(201,168,76,0); }

@@ -59,21 +59,25 @@ export const metadata = {
   },
 };
 
+import { SiteSettingsProvider } from "@/context/SiteSettingsContext";
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body
         className={`${cormorant.variable} ${jost.variable} ${italiana.variable} antialiased`}
       >
-        <PackageProvider>
-          <ProductProvider>
-            <CartProvider>
-              {children}
-              <CartDrawer />
-              <Toaster position="bottom-right" toastOptions={{ className: 'font-secondary text-[14px]' }} />
-            </CartProvider>
-          </ProductProvider>
-        </PackageProvider>
+        <SiteSettingsProvider>
+          <PackageProvider>
+            <ProductProvider>
+              <CartProvider>
+                {children}
+                <CartDrawer />
+                <Toaster position="bottom-right" toastOptions={{ className: 'font-secondary text-[14px]' }} />
+              </CartProvider>
+            </ProductProvider>
+          </PackageProvider>
+        </SiteSettingsProvider>
       </body>
     </html>
   );
