@@ -204,7 +204,7 @@ function TopProductsTable({ products, loading }) {
                 : null;
 
             return (
-              <div key={product.id} className="flex items-center gap-3">
+              <div key={product.id || product.name || `top-prod-${idx}`} className="flex items-center gap-3">
                 {/* Rank */}
                 <span className="font-secondary text-[11px] font-bold text-secondary/30 w-4 shrink-0 text-center">
                   {idx + 1}

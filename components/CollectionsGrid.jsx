@@ -39,8 +39,7 @@ const CollectionsGrid = () => {
 
   // Extract unique filters
   const categories = useMemo(() => {
-    if (!products.length) return ["All"];
-    return ["All", ...Array.from(new Set(products.map(p => p.category)))];
+    return ["All", ...Array.from(new Set(products.map(p => p.category).filter(Boolean)))];
   }, [products]);
 
   const availableColors = useMemo(() => {
@@ -282,7 +281,7 @@ const CollectionsGrid = () => {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ duration: 0.4, delay: Math.min(idx * 0.05, 0.5) }}
-                  key={product.id}
+                  key={product.id || product.name || `prod-${idx}`}
                   className="group flex flex-col bg-white rounded-2xl overflow-hidden border border-secondary/5 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all duration-500 relative"
                 >
                   {/* Image Area */}

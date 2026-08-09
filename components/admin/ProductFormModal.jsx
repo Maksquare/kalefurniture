@@ -413,7 +413,7 @@ export default function ProductFormModal({ isOpen, onClose, onSubmit, initialDat
                     <div className="flex flex-wrap gap-2">
                       {formData.swatches.map((swatch, idx) => (
                         <div
-                          key={swatch.id || idx}
+                          key={(swatch.id && String(swatch.id).trim()) || (swatch.label && String(swatch.label).trim()) || `swatch-${idx}`}
                           className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-secondary/15 shadow-sm group"
                         >
                           <span className="w-3.5 h-3.5 rounded-full border border-black/10 shrink-0" style={{ backgroundColor: swatch.color || "#836A58" }} />

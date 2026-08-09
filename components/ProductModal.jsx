@@ -119,7 +119,7 @@ const ProductModal = ({ isOpen, onClose, product }) => {
                   {/* Swatch palette */}
                   <div className="flex flex-wrap items-center justify-center gap-3">
                     {swatches.map((swatch, idx) => {
-                      const swatchId = swatch.id || swatch.label || idx;
+                      const swatchId = (swatch.id && String(swatch.id).trim()) || (swatch.label && String(swatch.label).trim()) || `swatch-${idx}`;
                       const isActive = !isCustomMode && activeSwatch?.label === swatch.label;
                       return (
                         <button

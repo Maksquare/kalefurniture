@@ -108,8 +108,8 @@ export default function AdminProducts() {
             </thead>
             <tbody className="divide-y divide-secondary/5">
               {filteredProducts.length > 0 ? (
-                filteredProducts.map((product) => (
-                  <tr key={product.id} className="hover:bg-secondary/[0.02] transition-colors group">
+                filteredProducts.map((product, idx) => (
+                  <tr key={product.id || product.name || `admin-prod-${idx}`} className="hover:bg-secondary/[0.02] transition-colors group">
                     <td className="py-4 px-6 flex items-center gap-4">
                       <div className="w-12 h-12 rounded-xl bg-secondary/5 overflow-hidden flex-shrink-0">
                         <img 
@@ -198,8 +198,8 @@ export default function AdminProducts() {
         {/* Mobile Card View */}
         <div className="md:hidden flex flex-col gap-4">
           {filteredProducts.length > 0 ? (
-            filteredProducts.map((product) => (
-              <div key={product.id} className="bg-white border border-secondary/10 rounded-2xl p-4 flex gap-4">
+            filteredProducts.map((product, idx) => (
+              <div key={product.id || product.name || `admin-prod-card-${idx}`} className="bg-white border border-secondary/10 rounded-2xl p-4 flex gap-4">
                 <div className="w-20 h-20 rounded-xl bg-secondary/5 flex-shrink-0 overflow-hidden relative">
                   <img 
                     src={product.images[0] || '/assets/img/hero/green-chair.jpeg'} 

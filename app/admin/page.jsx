@@ -125,8 +125,8 @@ export default function AdminDashboard() {
             </thead>
             <tbody className="divide-y divide-secondary/5">
               {packages.length > 0 ? (
-                packages.map((pkg) => (
-                  <tr key={pkg.id} className="hover:bg-secondary/[0.02] transition-colors group">
+                packages.map((pkg, idx) => (
+                  <tr key={pkg.id || pkg.name || `pkg-${idx}`} className="hover:bg-secondary/[0.02] transition-colors group">
                     <td className="py-4 px-6">
                       <div className="w-16 h-16 rounded-xl bg-secondary/5 overflow-hidden flex-shrink-0">
                         {pkg.mainImage ? (
@@ -171,11 +171,10 @@ export default function AdminDashboard() {
           </table>
         </div>
 
-        {/* Mobile Cards */}
         <div className="md:hidden flex flex-col gap-4">
           {packages.length > 0 ? (
-            packages.map((pkg) => (
-              <div key={pkg.id} className="bg-white border border-secondary/10 rounded-2xl p-4 flex gap-4">
+            packages.map((pkg, idx) => (
+              <div key={pkg.id || pkg.name || `pkg-card-${idx}`} className="bg-white border border-secondary/10 rounded-2xl p-4 flex gap-4">
                 <div className="w-20 h-20 rounded-xl bg-secondary/5 flex-shrink-0 overflow-hidden">
                   {pkg.mainImage ? (
                     <img src={pkg.mainImage} alt={pkg.name} className="w-full h-full object-contain mix-blend-multiply p-1" />
