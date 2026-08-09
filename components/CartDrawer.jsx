@@ -123,47 +123,62 @@ const CartDrawer = () => {
                 </div>
               ) : (
                 <div className="flex flex-col gap-6">
-                  {cartItems.map((item) => (
-                    <div key={item.id} className="flex gap-4 group">
-                      {/* Thumbnail */}
-                      <div className="w-24 h-24 rounded-md overflow-hidden bg-white shrink-0 relative border border-primary/5">
-                        <img src={item.images ? item.images[0] : item.image} alt={item.name} className="w-full h-full object-cover" />
-                      </div>
-                      
-                      {/* Info */}
-                      <div className="flex flex-col flex-1 py-1">
-                        <div className="flex justify-between items-start mb-1">
-                          <h4 className="font-primary text-lg text-secondary leading-tight">{item.name}</h4>
-                          <button 
-                            onClick={() => removeFromCart(item.id)}
-                            className="text-secondary/40 hover:text-red-500 transition-colors"
-                          >
-                            <PiTrashLight size={18} />
-                          </button>
+                  {cartItems.map((item) => {
+                    const key = item.cartKey || item.id;
+                    return (
+                      <div key={key} className="flex gap-4 group">
+                        {/* Thumbnail */}
+                        <div className="w-24 h-24 rounded-xl overflow-hidden bg-white shrink-0 relative border border-primary/10 shadow-sm p-1">
+                          <img src={item.images ? item.images[0] : item.image} alt={item.name} className="w-full h-full object-contain mix-blend-multiply" />
                         </div>
-                        <p className="font-secondary text-sm text-gold mb-3">{item.price.toLocaleString()} ETB</p>
                         
-                        {/* Quantity Controls */}
-                        <div className="mt-auto flex items-center gap-4">
-                          <div className="flex items-center bg-primary/5 rounded-full border border-primary/10">
+                        {/* Info */}
+                        <div className="flex flex-col flex-1 py-0.5 min-w-0">
+                          <div className="flex justify-between items-start mb-1 gap-2">
+                            <h4 className="font-primary text-lg text-secondary leading-tight truncate">{item.name}</h4>
                             <button 
-                              onClick={() => updateQuantity(item.id, -1)}
-                              className="w-8 h-8 flex items-center justify-center text-secondary/70 hover:text-secondary"
+                              onClick={() => removeFromCart(key)}
+                              className="text-secondary/40 hover:text-red-500 transition-colors p-1"
+                              title="Remove item"
                             >
-                              <PiMinusLight size={14} />
+                              <PiTrashLight size={18} />
                             </button>
-                            <span className="w-6 text-center font-secondary text-sm text-secondary">{item.quantity}</span>
-                            <button 
-                              onClick={() => updateQuantity(item.id, 1)}
-                              className="w-8 h-8 flex items-center justify-center text-secondary/70 hover:text-secondary"
-                            >
-                              <PiPlusLight size={14} />
-                            </button>
+                          </div>
+
+                          {/* Selected Color Badge */}
+                          {item.selectedColor && (
+                            <div className="flex items-center gap-1.5 mb-2">
+                              <span className="w-2 h-2 rounded-full bg-gold shrink-0" />
+                              <span className="font-secondary text-[11px] text-secondary/70 capitalize font-medium">
+                                Color: <strong className="text-secondary">{item.selectedColor}</strong>
+                              </span>
+                            </div>
+                          )}
+
+                          <p className="font-secondary text-sm text-gold font-semibold mb-3">{(item.price || 0).toLocaleString()} ETB</p>
+                          
+                          {/* Quantity Controls */}
+                          <div className="mt-auto flex items-center gap-4">
+                            <div className="flex items-center bg-primary/5 rounded-full border border-primary/10">
+                              <button 
+                                onClick={() => updateQuantity(key, -1)}
+                                className="w-8 h-8 flex items-center justify-center text-secondary/70 hover:text-secondary"
+                              >
+                                <PiMinusLight size={14} />
+                              </button>
+                              <span className="w-6 text-center font-secondary text-sm text-secondary font-medium">{item.quantity}</span>
+                              <button 
+                                onClick={() => updateQuantity(key, 1)}
+                                className="w-8 h-8 flex items-center justify-center text-secondary/70 hover:text-secondary"
+                              >
+                                <PiPlusLight size={14} />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

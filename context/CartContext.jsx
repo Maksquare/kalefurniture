@@ -29,28 +29,31 @@ export function CartProvider({ children }) {
     }
   }, [cartItems, isMounted]);
 
-  const addToCart = (product) => {
+  const addToCart = (product, selectedColor = null) => {
     setCartItems((prev) => {
-      const existingItem = prev.find((item) => item.id === product.id);
+      const colorTag = selectedColor ? (typeof selectedColor === "string" ? selectedColor : selectedColor.label || selectedColor.name) : null;
+      const itemKey = colorTag ? `${product.id}-${colorTag}` : product.id;
+      const existingItem = prev.find((item) => (item.cartKey || item.id) === itemKey);
+      
       if (existingItem) {
         return prev.map((item) =>
-          item.id === product.id
+          (item.cartKey || item.id) === itemKey
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       }
-      return [...prev, { ...product, quantity: 1 }];
+      return [...prev, { ...product, cartKey: itemKey, selectedColor: colorTag, quantity: 1 }];
     });
   };
 
-  const removeFromCart = (productId) => {
-    setCartItems((prev) => prev.filter((item) => item.id !== productId));
+  const removeFromCart = (cartKeyOrId) => {
+    setCartItems((prev) => prev.filter((item) => (item.cartKey || item.id) !== cartKeyOrId));
   };
 
-  const updateQuantity = (productId, amount) => {
+  const updateQuantity = (cartKeyOrId, amount) => {
     setCartItems((prev) => {
       return prev.map((item) => {
-        if (item.id === productId) {
+        if ((item.cartKey || item.id) === cartKeyOrId) {
           const newQuantity = Math.max(1, item.quantity + amount);
           return { ...item, quantity: newQuantity };
         }
