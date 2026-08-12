@@ -48,11 +48,20 @@ const ProductModal = ({ isOpen, onClose, product }) => {
   // Normalize swatches from product
   const rawSwatches = product?.swatches || product?.colors;
   const hasSwatches = Array.isArray(rawSwatches) && rawSwatches.length > 0;
-  const allowCustom = product?.allowCustomColor === true;
   
-  const swatches = hasSwatches 
-    ? rawSwatches.map((s, idx) => typeof s === "string" ? { id: `s-${idx}`, label: s, color: "#836A58" } : s)
-    : (allowCustom ? DEFAULT_SWATCHES : []);
+  // Read from exact Supabase column name 'allowcustomcolor' first (all lowercase, no underscores)
+  const rawAllow = product?.allowcustomcolor ?? product?.allowCustomColor ?? product?.allow_custom_color;
+  
+  // Color choice is allowed ONLY when rawAllow is explicitly true (not null/undefined)
+  const isColorChoiceAllowed = rawAllow === true || rawAllow === "true" || rawAllow === 1;
+    
+  const allowCustom = isColorChoiceAllowed;
+  
+  const swatches = isColorChoiceAllowed 
+    ? (hasSwatches 
+        ? rawSwatches.map((s, idx) => typeof s === "string" ? { id: `s-${idx}`, label: s, color: "#836A58" } : s)
+        : (allowCustom ? DEFAULT_SWATCHES : []))
+    : [];
 
   useEffect(() => {
     if (isOpen) {
@@ -60,15 +69,16 @@ const ProductModal = ({ isOpen, onClose, product }) => {
       setIsAdded(false);
       setCustomColor("");
       setIsCustomMode(false);
-      if (swatches.length > 0) {
+      if (isColorChoiceAllowed && swatches.length > 0) {
         setActiveSwatch(swatches[0]);
       } else {
         setActiveSwatch(null);
       }
     }
-  }, [isOpen, product]);
+  }, [isOpen, product, isColorChoiceAllowed]);
 
   const getSelectedColorName = () => {
+    if (!isColorChoiceAllowed) return null;
     if (isCustomMode && customColor.trim()) return customColor.trim();
     if (activeSwatch) return activeSwatch.label || activeSwatch.name || activeSwatch;
     return null;
@@ -112,7 +122,7 @@ const ProductModal = ({ isOpen, onClose, product }) => {
             <div className="w-full flex-1 overflow-y-auto custom-scrollbar flex flex-col">
               
               {/* 🎨 Top: Dynamic Swatches & Custom Color Option */}
-              {(swatches.length > 0 || allowCustom) && (
+              {(isColorChoiceAllowed && (swatches.length > 0 || allowCustom)) && (
                 <div className="flex flex-col items-center mt-6 sm:mt-10 pt-2 px-6">
                   <span className="font-secondary text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-secondary/60 mb-3 flex items-center gap-1.5">
                     <PiPalette className="text-gold text-sm" /> Available Finish & Color

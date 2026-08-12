@@ -30,8 +30,13 @@ export function ProductProvider({ children }) {
         const { data, error } = await supabase.from('products').select('*');
         if (error) throw error;
         
-        // Sort or process if needed, assuming Supabase returns the rows directly
-        setProducts(data || []);
+        // Normalize: map DB column 'allowcustomcolor' → frontend 'allowcustomcolor' as strict boolean
+        // Supabase column is exactly 'allowcustomcolor' (all lowercase, no underscores)
+        const normalized = (data || []).map(p => ({
+          ...p,
+          allowcustomcolor: p.allowcustomcolor === false ? false : Boolean(p.allowcustomcolor),
+        }));
+        setProducts(normalized);
       } catch (error) {
         console.error("Error fetching products:", error.message);
         // Fallback to initial data if DB fails

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import CollectionsGrid from "@/components/CollectionsGrid";
 
 export const metadata = {
@@ -20,7 +21,9 @@ const CollectionsPage = () => {
       </main>
 
       <div className="-mt-8">
-        <CollectionsGrid />
+        <Suspense fallback={<div className="py-20 text-center text-secondary/40 font-secondary">Loading collections...</div>}>
+          <CollectionsGrid />
+        </Suspense>
       </div>
     </div>
   );

@@ -74,7 +74,7 @@ export default function MadeToOrderModal({ isOpen, onClose, product }) {
       return;
     }
 
-    const phoneNumber = "251900000000"; // Kal Furniture contact phone / WhatsApp
+    const phoneNumber = "251936358805"; // Kal Furniture contact phone / WhatsApp
     const messageLines = [
       `🏛️ *KAL FURNITURE - MADE TO ORDER REQUEST*`,
       `━━━━━━━━━━━━━━━━━━━━━━`,

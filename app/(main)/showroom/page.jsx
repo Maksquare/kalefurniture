@@ -58,11 +58,11 @@ export default function ShowroomPage() {
             </div>
             <h3 className="font-primary text-2xl text-secondary mb-3">Location</h3>
             <p className="font-secondary text-sm text-secondary/70 leading-relaxed mb-6">
-              Bole Medhanialem <br />
+              Birchiko 40/60 Condominium <br />
               Addis Ababa, Ethiopia
             </p>
             <a 
-              href="https://maps.google.com/?q=Addis+Ababa" 
+              href="https://maps.app.goo.gl/HCtokEtawtrRHoSB9" 
               target="_blank" 
               rel="noreferrer"
               className="mt-auto inline-flex font-secondary text-[11px] font-bold tracking-[0.2em] uppercase text-gold hover:text-secondary transition-colors"
@@ -108,7 +108,7 @@ export default function ShowroomPage() {
                 Schedule a one-on-one guided tour with our interior design experts.
               </p>
               <a 
-                href="https://wa.me/251911123456?text=Hello%2C%20I%20would%20like%20to%20book%20a%20VIP%20Showroom%20Consultation." 
+                href="https://wa.me/251936358805?text=Hello%2C%20I%20would%20like%20to%20book%20a%20VIP%20Showroom%20Consultation." 
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-auto inline-flex items-center justify-center px-6 py-3 bg-gold hover:bg-gold-light text-primary font-secondary text-[11px] font-bold tracking-[0.2em] uppercase transition-colors rounded-sm shadow-[0_4px_20px_rgba(201,168,76,0.3)] hover:shadow-[0_4px_30px_rgba(201,168,76,0.5)]"

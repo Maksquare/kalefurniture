@@ -41,7 +41,7 @@ const CartDrawer = () => {
   }, [isCartOpen]);
 
   const handleCheckout = async () => {
-    const phoneNumber = "251900000000"; // Kal Furniture contact phone / WhatsApp
+    const phoneNumber = "251936358805"; // Kal Furniture contact phone / WhatsApp
     
     const header = `🏛️ *KAL FURNITURE - CUSTOMER ORDER*\n━━━━━━━━━━━━━━━━━━━━━━\n\n`;
 

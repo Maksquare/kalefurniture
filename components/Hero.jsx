@@ -3,22 +3,34 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { PiArrowRightLight, PiSparkleFill, PiTagLight } from "react-icons/pi";
+import { PiArrowRightLight, PiSparkleFill, PiTagLight, PiEyeLight } from "react-icons/pi";
 import VideoModal from "./VideoModal";
+import ProductModal from "./ProductModal";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { useProducts } from "@/context/ProductContext";
 
 const Hero = ({ initialProduct }) => {
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const { heroProductId, heroProductData } = useSiteSettings();
   const { products } = useProducts();
 
-  // Priority: 1. Context heroProductData, 2. Product in products array, 3. initialProduct passed from SSR
-  const heroProduct = heroProductData || 
-    products.find((p) => p.id === heroProductId || p.showInHero || (p.featured && p.images?.length)) || 
+  // Priority: 1. Normalized product from ProductContext (has allowcustomcolor normalized)
+  // 2. Fallback to heroProductData from SiteSettingsContext
+  // 3. Fallback to initialProduct from SSR
+  const heroProduct = 
+    products.find((p) => p.id === heroProductId) ||
+    products.find((p) => p.showInHero || (p.featured && p.images?.length)) ||
+    heroProductData ||
     initialProduct;
 
   const isJpeg = (url) => url && (url.endsWith(".jpg") || url.endsWith(".jpeg"));
+
+  const handleSpotlightClick = () => {
+    if (heroProduct) {
+      setIsProductModalOpen(true);
+    }
+  };
 
   return (
     <section className="relative w-full min-h-[100svh] flex items-center overflow-hidden pt-28 pb-10 bg-surface">
@@ -40,12 +52,48 @@ const Hero = ({ initialProduct }) => {
           transition={{ duration: 0.8 }}
           className="flex flex-col items-start pt-10"
         >
-          <div className="flex items-center gap-2 mb-6">
-            <span className="px-3 py-1 rounded-full bg-gold/15 text-gold font-secondary text-[11px] font-bold tracking-[0.2em] uppercase border border-gold/30 flex items-center gap-1.5 shadow-sm">
-              <PiSparkleFill size={13} />
-              {heroProduct ? `Hero Spotlight · ${heroProduct.category || "Featured"}` : "Trending Collections"}
+
+          {/* ── Luxury Eyebrow ─────────────────────────────────── */}
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
+            className="flex items-center gap-3 mb-8"
+          >
+            {/* Pulsing live dot */}
+            <span className="relative flex h-1.5 w-1.5 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gold opacity-60" />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-gold" />
             </span>
-          </div>
+
+            {/* Expanding left line */}
+            <motion.div
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ duration: 0.9, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
+              style={{ transformOrigin: "left", width: 28 }}
+              className="h-px bg-gradient-to-r from-gold/80 to-gold/10 shrink-0"
+            />
+
+            {/* Sparkle + Category */}
+            <span className="flex items-center gap-1.5">
+              <PiSparkleFill size={10} className="text-gold shrink-0" />
+              <span className="font-secondary text-[10px] font-bold tracking-[0.32em] uppercase bg-gradient-to-r from-gold-light via-gold to-gold-dark bg-clip-text text-transparent">
+                {heroProduct?.category
+                  ? heroProduct.category.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
+                  : "Curated Collection"}
+              </span>
+            </span>
+
+            {/* Expanding right line */}
+            <motion.div
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ duration: 0.9, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              style={{ transformOrigin: "right", width: 28 }}
+              className="h-px bg-gradient-to-l from-gold/80 to-gold/10 shrink-0"
+            />
+          </motion.div>
 
           <h1 className="font-primary text-[42px] sm:text-[52px] md:text-[64px] lg:text-[72px] font-semibold leading-[1.05] tracking-[-0.02em] text-secondary mb-6">
             {heroProduct ? (
@@ -77,11 +125,22 @@ const Hero = ({ initialProduct }) => {
           )}
 
           <div className="flex flex-wrap items-center gap-4 sm:gap-6 mb-12">
-            <Link href={heroProduct ? `/collections?product=${heroProduct.id}` : "/collections"}>
-              <button className="px-8 py-3.5 bg-primary text-white font-secondary text-[14px] font-medium rounded-full shadow-[0_8px_20px_rgba(155,92,53,0.3)] hover:bg-gold transition-colors hover:shadow-lg hover:-translate-y-0.5">
-                {heroProduct ? "View Spotlight Piece" : "Explore Collection"}
+            {heroProduct ? (
+              <button 
+                onClick={handleSpotlightClick}
+                className="px-8 py-3.5 bg-primary text-white font-secondary text-[14px] font-medium rounded-full shadow-[0_8px_20px_rgba(155,92,53,0.3)] hover:bg-gold transition-all hover:shadow-lg hover:-translate-y-0.5 flex items-center gap-2 cursor-pointer"
+              >
+                <span>View Spotlight Piece</span>
+                <PiEyeLight size={18} />
               </button>
-            </Link>
+            ) : (
+              <Link href="/collections">
+                <button className="px-8 py-3.5 bg-primary text-white font-secondary text-[14px] font-medium rounded-full shadow-[0_8px_20px_rgba(155,92,53,0.3)] hover:bg-gold transition-all hover:shadow-lg hover:-translate-y-0.5 cursor-pointer">
+                  Explore Collection
+                </button>
+              </Link>
+            )}
+
             <Link 
               href="/packages"
               className="group flex items-center gap-3 text-secondary hover:text-gold transition-colors"
@@ -102,7 +161,10 @@ const Hero = ({ initialProduct }) => {
           transition={{ duration: 1, delay: 0.2 }}
           className="relative w-full h-[450px] sm:h-[500px] lg:h-[600px] flex items-center justify-center"
         >
-          <div className="relative w-full h-full max-w-[500px] flex items-center justify-center">
+          <div 
+            onClick={heroProduct ? handleSpotlightClick : undefined}
+            className={`relative w-full h-full max-w-[500px] flex items-center justify-center group ${heroProduct ? 'cursor-pointer' : ''}`}
+          >
             {/* The main spotlight image */}
             <img 
               src={
@@ -112,15 +174,30 @@ const Hero = ({ initialProduct }) => {
               alt={heroProduct?.name || "Cozy Beige Accent Chair"}
               className={`max-w-full max-h-full transition-all duration-700 ${
                 heroProduct && isJpeg(heroProduct.images?.[0]) 
-                  ? "object-cover rounded-3xl shadow-2xl border border-secondary/10" 
-                  : "object-contain object-center drop-shadow-2xl mix-blend-multiply"
+                  ? "object-cover rounded-3xl shadow-2xl border border-secondary/10 group-hover:scale-[1.02]" 
+                  : "object-contain object-center drop-shadow-2xl mix-blend-multiply group-hover:scale-[1.02]"
               }`}
             />
+            {heroProduct && (
+              <div className="absolute inset-0 rounded-3xl bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
+                <span className="px-5 py-2.5 rounded-full bg-white/90 backdrop-blur-md text-primary font-secondary text-[13px] font-semibold shadow-xl flex items-center gap-2">
+                  <PiEyeLight size={16} /> Quick View Spotlight
+                </span>
+              </div>
+            )}
           </div>
         </motion.div>
       </div>
 
       <VideoModal isOpen={isVideoModalOpen} onClose={() => setIsVideoModalOpen(false)} />
+
+      {heroProduct && (
+        <ProductModal 
+          isOpen={isProductModalOpen} 
+          onClose={() => setIsProductModalOpen(false)} 
+          product={heroProduct} 
+        />
+      )}
     </section>
   );
 };

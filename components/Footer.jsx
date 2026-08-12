@@ -14,20 +14,20 @@ import {
   RiTiktokLine,
   RiLinkedinLine,
 } from "react-icons/ri";
-import { PiStarFourFill, PiArmchairFill } from "react-icons/pi";
+import { PiStarFourFill, PiArmchairFill, PiSparkleFill } from "react-icons/pi";
 import Logo from "./Logo";
 
 /* ─── Data ───────────────────────────────────────────────────────── */
 const contactItems = [
   {
     icon: RiMapPinFill,
-    value: "Bole Medhanialem, Addis Ababa, Ethiopia",
-    href:  "https://maps.google.com/?q=Addis+Ababa",
+    value: "Birchiko 40/60 Condominium, Addis Ababa",
+    href:  "https://maps.app.goo.gl/HCtokEtawtrRHoSB9",
   },
   {
     icon: RiPhoneFill,
-    value: "+251 911 123 456",
-    href:  "tel:+251911123456",
+    value: "+251 936 358 805",
+    href:  "tel:+251936358805",
   },
   {
     icon: RiMailFill,
@@ -39,6 +39,7 @@ const contactItems = [
 const quickLinks = [
   { name: "Home",         to: "/" },
   { name: "Collections",  to: "/collections" },
+  { name: "Packages",     to: "/packages" },
   { name: "About Us",     to: "/about" },
   { name: "Contact",      to: "/contact" },
 ];
@@ -95,15 +96,15 @@ const Footer = () => {
         className="container relative z-10"
       >
         {/* ── Main grid ─────────────────────────────────────────── */}
-        <div className="py-16 xl:py-24 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[1.4fr_1fr_1fr_1.2fr] gap-12 xl:gap-10">
+        <div className="py-16 xl:py-24 grid grid-cols-2 xl:grid-cols-[1.4fr_1fr_1fr_1.2fr] gap-x-6 gap-y-12 xl:gap-10">
 
           {/* Col 1 — Brand ───────────────────────────────────────── */}
-          <motion.div variants={animItem} className="xl:col-span-1">
+          <motion.div variants={animItem} className="col-span-2 xl:col-span-1 flex flex-col items-center text-center xl:items-start xl:text-left">
             <div className="mb-6">
               <Logo isDarkText={false} />
             </div>
 
-            <p className="font-secondary text-[13px] leading-[1.8] text-white/40 max-w-[230px] mb-8">
+            <p className="font-secondary text-[13px] leading-[1.8] text-white/40 max-w-[260px] mb-8">
               Transforming houses into homes with meticulously crafted furniture. Elegance, comfort, and timeless design.
             </p>
 
@@ -136,16 +137,16 @@ const Footer = () => {
           </motion.div>
 
           {/* Col 2 — Quick Links ──────────────────────────────────── */}
-          <motion.div variants={animItem}>
+          <motion.div variants={animItem} className="flex flex-col items-center text-center xl:items-start xl:text-left">
             <h4 className="font-secondary text-[10px] font-medium tracking-[0.26em] uppercase text-gold/70 mb-7">
               Quick Links
             </h4>
-            <ul className="flex flex-col gap-3">
+            <ul className="flex flex-col gap-3 items-center xl:items-start">
               {quickLinks.map(({ name, to }, idx) => (
                 <li key={idx} className="group flex items-center gap-2 cursor-pointer">
                   <RiArrowRightLine
                     size={11}
-                    className="text-gold/0 group-hover:text-gold/60 -translate-x-1 group-hover:translate-x-0 transition-all duration-200"
+                    className="hidden xl:block text-gold/0 group-hover:text-gold/60 -translate-x-1 group-hover:translate-x-0 transition-all duration-200"
                   />
                   <Link
                     href={to}
@@ -159,18 +160,18 @@ const Footer = () => {
           </motion.div>
 
           {/* Col 3 — Collections ────────────────────────────────────── */}
-          <motion.div variants={animItem}>
+          <motion.div variants={animItem} className="flex flex-col items-center text-center xl:items-start xl:text-left">
             <h4 className="font-secondary text-[10px] font-medium tracking-[0.26em] uppercase text-gold/70 mb-7">
               Collections
             </h4>
-            <ul className="flex flex-col gap-3">
+            <ul className="flex flex-col gap-3 items-center xl:items-start">
               {collections.map(({ name }, idx) => (
                 <li
                   key={idx}
                   className="group flex items-center gap-2 cursor-pointer"
                 >
                   <PiStarFourFill
-                    className="text-gold/0 group-hover:text-gold/50 transition-colors duration-200 text-[7px] shrink-0"
+                    className="hidden xl:block text-gold/0 group-hover:text-gold/50 transition-colors duration-200 text-[7px] shrink-0"
                   />
                   <Link
                     href="/collections"
@@ -184,16 +185,16 @@ const Footer = () => {
           </motion.div>
 
           {/* Col 4 — Contact ───────────────────────────────────── */}
-          <motion.div variants={animItem}>
+          <motion.div variants={animItem} className="col-span-2 xl:col-span-1 flex flex-col items-center text-center xl:items-start xl:text-left">
             <h4 className="font-secondary text-[10px] font-medium tracking-[0.26em] uppercase text-gold/70 mb-7">
               Get in Touch
             </h4>
-            <p className="font-secondary text-[13px] leading-[1.8] text-white/40 mb-6">
+            <p className="font-secondary text-[13px] leading-[1.8] text-white/40 mb-6 max-w-sm">
               Have questions or need assistance? Reach out to our dedicated team of interior specialists.
             </p>
 
             {/* Contact items */}
-            <ul className="mt-2 flex flex-col gap-4">
+            <ul className="mt-2 flex flex-col gap-4 items-center xl:items-start">
               {contactItems.map(({ icon: Icon, value, href }, idx) => (
                 <li key={idx} className="flex items-start gap-3 group">
                   <Icon
@@ -227,7 +228,7 @@ const Footer = () => {
         {/* ── Bottom bar ────────────────────────────────────────── */}
         <motion.div
           variants={animItem}
-          className="py-7 flex flex-col sm:flex-row items-center justify-between gap-4"
+          className="py-7 flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-4 text-center sm:text-left"
         >
           <p className="font-secondary text-[11px] text-white/20 tracking-wide">
             &copy; {new Date().getFullYear()} Kal Furniture. All rights reserved.
@@ -251,6 +252,47 @@ const Footer = () => {
               Terms of Service
             </a>
           </div>
+        </motion.div>
+
+        {/* ── Developer Signature Bar (AME PRIME) ───────────────── */}
+        <div className="h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent opacity-80" />
+
+        <motion.div
+          variants={animItem}
+          className="py-4 my-4 mb-6 flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-4 px-6 rounded-2xl md:rounded-full bg-white/[0.02] border border-white/[0.06] hover:border-gold/30 transition-all duration-500 backdrop-blur-md group text-center sm:text-left"
+        >
+          {/* Developed By AME PRIME */}
+          <div className="flex items-center gap-3">
+            <div className="relative flex items-center justify-center w-7 h-7 rounded-full bg-gold/10 border border-gold/30 text-gold shadow-[0_0_12px_rgba(221,182,125,0.2)] group-hover:scale-110 transition-transform duration-300">
+              <PiSparkleFill size={13} className="animate-pulse text-gold" />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="font-secondary text-[10px] font-medium uppercase tracking-[0.25em] text-white/40">
+                Developed By
+              </span>
+              <span className="text-white/20 font-light text-[12px]">—</span>
+              <span className="font-primary text-[15px] font-bold tracking-[0.18em] uppercase bg-gradient-to-r from-gold-light via-gold to-gold-dark bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(221,182,125,0.25)] group-hover:tracking-[0.22em] transition-all duration-300">
+                AME PRIME
+              </span>
+            </div>
+          </div>
+
+          {/* Direct Phone Contact Pill */}
+          <a
+            href="tel:0954944389"
+            aria-label="Call AME PRIME - 0954944389"
+            className="flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] hover:border-gold/50 hover:bg-gold/10 hover:shadow-[0_0_18px_rgba(221,182,125,0.2)] transition-all duration-300 text-white/60 hover:text-white"
+          >
+            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-gold/20 text-gold">
+              <RiPhoneFill size={10} />
+            </span>
+            <span className="font-secondary text-[10px] font-medium tracking-[0.2em] uppercase text-gold/70 group-hover:text-gold transition-colors duration-200">
+              Direct:
+            </span>
+            <span className="font-secondary text-[12px] font-semibold tracking-widest text-white/90 group-hover:text-gold transition-colors duration-200">
+              0954944389
+            </span>
+          </a>
         </motion.div>
 
       </motion.div>

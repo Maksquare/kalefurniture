@@ -80,10 +80,10 @@ export default function ContactContent() {
                 <div>
                   <h3 className="font-primary text-[22px] text-secondary mb-2">Showroom</h3>
                   <p className="font-secondary text-[14px] leading-loose text-secondary/70 mb-4">
-                    Bole Medhanialem, Next to Edna Mall<br />
+                    Birchiko 40/60 Condominium<br />
                     Addis Ababa, Ethiopia
                   </p>
-                  <a href="https://maps.google.com" target="_blank" rel="noreferrer" className="inline-flex font-secondary text-[11px] font-bold tracking-[0.2em] uppercase text-gold hover:text-secondary transition-colors">
+                  <a href="https://maps.app.goo.gl/HCtokEtawtrRHoSB9" target="_blank" rel="noreferrer" className="inline-flex font-secondary text-[11px] font-bold tracking-[0.2em] uppercase text-gold hover:text-secondary transition-colors">
                     Get Directions &rarr;
                   </a>
                 </div>
@@ -99,7 +99,7 @@ export default function ContactContent() {
                 </div>
                 <div>
                   <h3 className="font-primary text-[22px] text-secondary mb-2">Direct Line</h3>
-                  <a href="tel:+251911123456" className="block font-secondary text-[16px] text-secondary/80 hover:text-gold transition-colors mb-1">+251 911 123 456</a>
+                  <a href="tel:+251936358805" className="block font-secondary text-[16px] text-secondary/80 hover:text-gold transition-colors mb-1">+251 936 358 805</a>
                   <p className="font-secondary text-[13px] text-secondary/50">Mon – Sat, 9am – 8pm</p>
                 </div>
               </div>
@@ -133,7 +133,7 @@ export default function ContactContent() {
                 <h3 className="font-primary text-[28px] text-white mb-2">Book a Visit</h3>
                 <p className="font-secondary text-white/70 text-[14px] mb-6 max-w-sm">Explore our curated collections in person and feel the unparalleled quality of our craftsmanship.</p>
                 <a 
-                  href="https://wa.me/251911123456?text=Hello%2C%20I%20would%20like%20to%20book%20a%20VIP%20Showroom%20Consultation." 
+                  href="https://wa.me/251936358805?text=Hello%2C%20I%20would%20like%20to%20book%20a%20VIP%20Showroom%20Consultation." 
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-3 px-6 py-3 bg-white/10 hover:bg-gold backdrop-blur-md border border-white/20 hover:border-gold text-white hover:text-primary font-secondary text-[11px] font-bold tracking-[0.2em] uppercase transition-all duration-300 rounded-sm"
@@ -179,7 +179,7 @@ export default function ContactContent() {
           className="mt-8 lg:mt-12 w-full max-w-6xl mx-auto h-[350px] md:h-[450px] rounded-2xl overflow-hidden border border-secondary/10 relative z-10"
         >
           <iframe 
-            src="https://maps.google.com/maps?q=Edna%20Mall,%20Bole,%20Addis%20Ababa,%20Ethiopia&t=&z=15&ie=UTF8&iwloc=&output=embed" 
+            src="https://maps.google.com/maps?q=9.057255,38.703431&hl=en&z=16&output=embed" 
             width="100%" 
             height="100%" 
             style={{ border: 0 }} 

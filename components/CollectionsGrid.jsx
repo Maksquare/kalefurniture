@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { PiShoppingCartLight, PiMagnifyingGlassLight, PiStarFill, PiFadersLight, PiXLight, PiCheckLight, PiCrownLight, PiSparkleLight, PiStarLight, PiHammerLight } from "react-icons/pi";
 import { useProducts } from "@/context/ProductContext";
@@ -25,6 +26,20 @@ const CollectionsGrid = () => {
   const { products, isLoaded } = useProducts();
   const { addToCart } = useCart();
   const [selectedProduct, setSelectedProduct] = useState(null);
+  
+  const searchParams = useSearchParams();
+  const productIdFromQuery = searchParams ? searchParams.get("product") : null;
+
+  useEffect(() => {
+    if (productIdFromQuery && products && products.length > 0) {
+      const found = products.find(
+        (p) => String(p.id) === String(productIdFromQuery)
+      );
+      if (found) {
+        setSelectedProduct(found);
+      }
+    }
+  }, [productIdFromQuery, products]);
   
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");

@@ -53,7 +53,10 @@ export default function ProductFormModal({ isOpen, onClose, onSubmit, initialDat
         dimensions: initialData.dimensions || "",
         type: initialData.type || "Furniture",
         swatches: initialData.swatches || initialData.colors || [],
-        allowCustomColor: initialData.allowCustomColor !== undefined ? initialData.allowCustomColor : true,
+        allowCustomColor: (() => {
+          const val = initialData.allowCustomColor ?? initialData.allowcustomcolor ?? initialData.allow_custom_color ?? initialData.allowCustom ?? initialData.allow_custom;
+          return val === false || val === "false" || val === 0 ? false : true;
+        })(),
         showInHero: initialData.showInHero || false,
         outOfStock: initialData.outOfStock || false,
       });
@@ -86,11 +89,18 @@ export default function ProductFormModal({ isOpen, onClose, onSubmit, initialDat
   const handleSubmit = (e) => {
     e.preventDefault();
     
+    const isAllowColor = Boolean(formData.allowCustomColor);
+    const finalSwatches = isAllowColor ? (formData.swatches || []) : [];
+
     const submitData = {
       ...formData,
+      swatches: finalSwatches,
+      colors: finalSwatches,
+      allowCustomColor: isAllowColor,
+      allowcustomcolor: isAllowColor,
+      allow_custom_color: isAllowColor,
       price: Number(formData.price) || 0,
       images: formData.images,
-      colors: formData.swatches, // alias for backwards compatibility
     };
 
     if (formData.showInHero) {

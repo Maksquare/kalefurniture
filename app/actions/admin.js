@@ -21,8 +21,15 @@ export async function serverAddProduct(newProduct) {
     await checkAdmin();
     if (!supabaseAdmin) throw new Error("Supabase Admin client not configured.");
     
-    const payload = { ...newProduct };
+    const payload = { 
+      ...newProduct,
+      // Use exact Supabase column name (all lowercase)
+      allowcustomcolor: newProduct.allowCustomColor !== undefined ? Boolean(newProduct.allowCustomColor) : true,
+    };
+    // Remove camelCase aliases that don't exist as DB columns
     delete payload.showInHero;
+    delete payload.allowCustomColor;
+    delete payload.allow_custom_color;
 
     const { data, error } = await supabaseAdmin
       .from("products")
@@ -44,7 +51,7 @@ export async function serverAddProduct(newProduct) {
         isNew: payload.isNew,
         outOfStock: payload.outOfStock,
         swatches: payload.swatches,
-        allowCustomColor: payload.allowCustomColor,
+        allowcustomcolor: payload.allowcustomcolor,
         structure: payload.structure,
         finish: payload.finish,
         dimensions: payload.dimensions,
@@ -72,8 +79,15 @@ export async function serverUpdateProduct(id, updatedData) {
     await checkAdmin();
     if (!supabaseAdmin) throw new Error("Supabase Admin client not configured.");
     
-    const payload = { ...updatedData };
+    const payload = { 
+      ...updatedData,
+      // Use exact Supabase column name (all lowercase)
+      allowcustomcolor: updatedData.allowCustomColor !== undefined ? Boolean(updatedData.allowCustomColor) : true,
+    };
+    // Remove camelCase aliases that don't exist as DB columns
     delete payload.showInHero;
+    delete payload.allowCustomColor;
+    delete payload.allow_custom_color;
 
     // If we are setting this product to featured, we need to un-feature others in the category
     if (payload.featured === true) {
@@ -112,7 +126,7 @@ export async function serverUpdateProduct(id, updatedData) {
         isNew: payload.isNew,
         outOfStock: payload.outOfStock,
         swatches: payload.swatches,
-        allowCustomColor: payload.allowCustomColor,
+        allowcustomcolor: payload.allowcustomcolor,
         structure: payload.structure,
         finish: payload.finish,
         dimensions: payload.dimensions,
