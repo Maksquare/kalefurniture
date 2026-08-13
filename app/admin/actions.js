@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { getSupabase } from "@/lib/supabase";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 export async function login(formData) {
   const email = formData.get("email");
@@ -12,24 +12,24 @@ export async function login(formData) {
     return { error: "Email and password are required" };
   }
 
-  const supabase = getSupabase();
-  if (!supabase) {
-    return { error: "Database configuration error" };
+  let supabase;
+  try {
+    supabase = await createSupabaseServerClient();
+  } catch (e) {
+    return { error: "Database configuration error. Missing environment variables." };
   }
 
-  // Verify credentials securely with Supabase Auth
+  // Verify credentials securely with Supabase Auth via SSR server client
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
 
   if (error || !data.session) {
-    // Return a generic error message for security
-    return { error: "Invalid email or password" };
+    return { error: error?.message || "Invalid email or password" };
   }
 
-  // If Supabase verifies the user, drop our local admin cookie
-  // We use the access_token as the cookie value just in case we need it later
+  // Set admin_token cookie for middleware & session validation
   const cookieStore = await cookies();
   cookieStore.set("admin_token", data.session.access_token, {
     httpOnly: true,
@@ -44,5 +44,11 @@ export async function login(formData) {
 export async function logout() {
   const cookieStore = await cookies();
   cookieStore.delete("admin_token");
+
+  try {
+    const supabase = await createSupabaseServerClient();
+    await supabase.auth.signOut();
+  } catch (e) {}
+
   redirect("/admin/login");
 }

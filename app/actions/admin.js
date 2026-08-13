@@ -2,12 +2,16 @@
 
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getSession } from "@/lib/supabase-server";
 
 // Security check helper
 async function checkAdmin() {
   const cookieStore = await cookies();
   const token = cookieStore.get("admin_token");
-  if (!token) {
+  if (token?.value) return;
+
+  const session = await getSession();
+  if (!session) {
     throw new Error("Unauthorized: Admin access required.");
   }
 }
