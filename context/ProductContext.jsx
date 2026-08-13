@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import { allProducts as initialProducts } from "@/lib/data";
 import { serverAddProduct, serverUpdateProduct, serverDeleteProduct } from "@/app/actions/admin";
 import toast from "react-hot-toast";
@@ -14,11 +14,16 @@ export function ProductProvider({ children }) {
 
   useEffect(() => {
     async function fetchProducts() {
+      const supabase = getSupabase();
       if (!supabase) {
         // Fallback to local data if Supabase is not configured yet
         const stored = localStorage.getItem("kal_products");
         if (stored) {
-          setProducts(JSON.parse(stored));
+          try {
+            setProducts(JSON.parse(stored));
+          } catch (e) {
+            setProducts(initialProducts);
+          }
         } else {
           setProducts(initialProducts);
         }

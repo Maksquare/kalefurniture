@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 
 export async function login(formData) {
   const email = formData.get("email");
@@ -10,6 +10,11 @@ export async function login(formData) {
   
   if (!email || !password) {
     return { error: "Email and password are required" };
+  }
+
+  const supabase = getSupabase();
+  if (!supabase) {
+    return { error: "Database configuration error" };
   }
 
   // Verify credentials securely with Supabase Auth

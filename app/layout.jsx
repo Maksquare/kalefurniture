@@ -3,6 +3,7 @@ import "./globals.css";
 import { ProductProvider } from "@/context/ProductContext";
 import { PackageProvider } from "@/context/PackageContext";
 import { CartProvider } from "@/context/CartContext";
+import { SiteSettingsProvider } from "@/context/SiteSettingsContext"; 
 import CartDrawer from "@/components/CartDrawer";
 import { Toaster } from "react-hot-toast";
 
@@ -61,8 +62,6 @@ export const metadata = {
     siteName: "Kal Furniture",
   },
 };
-
-import { SiteSettingsProvider } from "@/context/SiteSettingsContext";
 
 export default function RootLayout({ children }) {
   return (

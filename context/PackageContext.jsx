@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import { serverAddPackage, serverUpdatePackage, serverDeletePackage } from "@/app/actions/admin";
 import toast from "react-hot-toast";
 
@@ -70,11 +70,17 @@ export function PackageProvider({ children }) {
 
   useEffect(() => {
     async function fetchPackages() {
+      const supabase = getSupabase();
+
       if (!supabase) {
         // Fallback to local data if Supabase is not configured yet
         const stored = localStorage.getItem("kal_packages");
         if (stored) {
-          setPackages(JSON.parse(stored));
+          try {
+            setPackages(JSON.parse(stored));
+          } catch (e) {
+            setPackages(initialPackages);
+          }
         } else {
           setPackages(initialPackages);
         }
@@ -97,6 +103,7 @@ export function PackageProvider({ children }) {
   }, []);
 
   const addPackage = async (newPackage) => {
+    const supabase = getSupabase();
     const tempId = newPackage.id || `pkg-${Date.now()}`;
     const packageWithId = { ...newPackage, id: tempId };
     
@@ -123,6 +130,8 @@ export function PackageProvider({ children }) {
   };
 
   const updatePackage = async (id, updatedData) => {
+    const supabase = getSupabase();
+    
     // Optimistic update
     setPackages((prev) => prev.map((p) => (p.id === id ? { ...p, ...updatedData } : p)));
 
@@ -148,6 +157,8 @@ export function PackageProvider({ children }) {
   };
 
   const deletePackage = async (id) => {
+    const supabase = getSupabase();
+    
     // Optimistic update
     const previous = [...packages];
     setPackages((prev) => prev.filter((p) => p.id !== id));

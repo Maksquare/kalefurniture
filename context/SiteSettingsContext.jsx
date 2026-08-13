@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import { serverSaveSiteSetting, serverGetSiteSettings } from "@/app/actions/admin";
 
 const defaultPromoSettings = {
@@ -51,15 +51,18 @@ export function SiteSettingsProvider({ children }) {
           if (res.data.promo_banner) setPromoSettings(res.data.promo_banner);
           if (res.data.hero_product_id) setHeroProductId(res.data.hero_product_id);
           if (res.data.hero_product_data) setHeroProductData(res.data.hero_product_data);
-        } else if (supabase) {
-          const { data } = await supabase.from("site_settings").select("*");
-          if (data) {
-            const promoRow = data.find((r) => r.key === "promo_banner");
-            const heroRow = data.find((r) => r.key === "hero_product_id");
-            const heroDataRow = data.find((r) => r.key === "hero_product_data");
-            if (promoRow?.value) setPromoSettings(promoRow.value);
-            if (heroRow?.value) setHeroProductId(heroRow.value);
-            if (heroDataRow?.value) setHeroProductData(heroDataRow.value);
+        } else {
+          const client = getSupabase();
+          if (client) {
+            const { data } = await client.from("site_settings").select("*");
+            if (data) {
+              const promoRow = data.find((r) => r.key === "promo_banner");
+              const heroRow = data.find((r) => r.key === "hero_product_id");
+              const heroDataRow = data.find((r) => r.key === "hero_product_data");
+              if (promoRow?.value) setPromoSettings(promoRow.value);
+              if (heroRow?.value) setHeroProductId(heroRow.value);
+              if (heroDataRow?.value) setHeroProductData(heroDataRow.value);
+            }
           }
         }
       } catch (e) {
