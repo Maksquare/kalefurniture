@@ -37,14 +37,17 @@ export default function AdminDashboard() {
     );
   }
 
-  const totalProducts = products.length;
+  const safeProducts = Array.isArray(products) ? products : [];
+  const safePackages = Array.isArray(packages) ? packages : [];
+
+  const totalProducts = safeProducts.length;
   const avgPrice = totalProducts > 0
-    ? products.reduce((acc, p) => acc + (p.price || 0), 0) / totalProducts
+    ? safeProducts.reduce((acc, p) => acc + (p?.price || 0), 0) / totalProducts
     : 0;
 
   const stats = [
     { title: "Total Products", value: totalProducts, icon: PiPackage },
-    { title: "Packages",       value: packages.length, icon: PiTag },
+    { title: "Packages",       value: safePackages.length, icon: PiTag },
     { title: "Avg. Price",     value: `${Math.round(avgPrice).toLocaleString()} ETB`, icon: PiMoney },
     { 
       title: "Total Inquiries", 
@@ -124,8 +127,8 @@ export default function AdminDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-secondary/5">
-              {packages.length > 0 ? (
-                packages.map((pkg, idx) => (
+              {safePackages.length > 0 ? (
+                safePackages.map((pkg, idx) => (
                   <tr key={pkg.id || pkg.name || `pkg-${idx}`} className="hover:bg-secondary/[0.02] transition-colors group">
                     <td className="py-4 px-6">
                       <div className="w-16 h-16 rounded-xl bg-secondary/5 overflow-hidden flex-shrink-0">
@@ -172,8 +175,8 @@ export default function AdminDashboard() {
         </div>
 
         <div className="md:hidden flex flex-col gap-4">
-          {packages.length > 0 ? (
-            packages.map((pkg, idx) => (
+          {safePackages.length > 0 ? (
+            safePackages.map((pkg, idx) => (
               <div key={pkg.id || pkg.name || `pkg-card-${idx}`} className="bg-white border border-secondary/10 rounded-2xl p-4 flex gap-4">
                 <div className="w-20 h-20 rounded-xl bg-secondary/5 flex-shrink-0 overflow-hidden">
                   {pkg.mainImage ? (

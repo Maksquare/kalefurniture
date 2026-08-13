@@ -78,7 +78,8 @@ function KpiCard({ icon: Icon, label, value, sub, highlight, loading }) {
    Revenue Bar Chart (pure CSS)
 ──────────────────────────────────────── */
 function RevenueChart({ months, loading }) {
-  const max = Math.max(...(months?.map((m) => m.revenue) || [1]), 1);
+  const safeMonths = Array.isArray(months) ? months : [];
+  const max = Math.max(...(safeMonths.map((m) => m.revenue || 0) || [1]), 1);
 
   return (
     <div className="bg-white rounded-2xl md:rounded-3xl border border-secondary/10 p-5 md:p-8 shadow-sm">
@@ -106,13 +107,17 @@ function RevenueChart({ months, loading }) {
             />
           ))}
         </div>
+      ) : safeMonths.length === 0 ? (
+        <div className="py-10 flex flex-col items-center justify-center h-40 font-secondary text-[13px] text-secondary/40">
+          No monthly revenue data.
+        </div>
       ) : (
         <div className="flex items-end gap-2 md:gap-3 h-40">
-          {months?.map((m, i) => {
-            const isLast = i === months.length - 1;
-            const heightPct = max > 0 ? (m.revenue / max) * 100 : 4;
+          {safeMonths.map((m, i) => {
+            const isLast = i === safeMonths.length - 1;
+            const heightPct = max > 0 ? ((m.revenue || 0) / max) * 100 : 4;
             return (
-              <div key={m.label} className="flex-1 flex flex-col items-center gap-1.5 group">
+              <div key={m.label || i} className="flex-1 flex flex-col items-center gap-1.5 group">
                 <div className="relative w-full flex justify-center">
                   {/* Tooltip */}
                   <div className="absolute bottom-full mb-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
@@ -122,22 +127,13 @@ function RevenueChart({ months, loading }) {
                   </div>
                   {/* Bar */}
                   <div
-                    className={`w-full rounded-t-xl transition-all duration-700 ${
-                      isLast
-                        ? "bg-gold shadow-[0_4px_12px_rgba(217,182,110,0.4)]"
-                        : "bg-secondary/10 group-hover:bg-secondary/20"
+                    className={`w-full rounded-t-lg transition-all duration-500 group-hover:brightness-110 ${
+                      isLast ? "bg-gold" : "bg-secondary/15 group-hover:bg-gold/60"
                     }`}
-                    style={{
-                      height: `${Math.max(heightPct, 4)}%`,
-                      minHeight: "6px",
-                    }}
+                    style={{ height: `${Math.max(heightPct, 4)}%` }}
                   />
                 </div>
-                <span
-                  className={`font-secondary text-[10px] tracking-wide ${
-                    isLast ? "text-gold font-bold" : "text-secondary/40"
-                  }`}
-                >
+                <span className="font-secondary text-[9px] md:text-[10px] uppercase tracking-wider text-secondary/40 group-hover:text-secondary font-medium transition-colors">
                   {m.label}
                 </span>
               </div>
@@ -153,7 +149,8 @@ function RevenueChart({ months, loading }) {
    Top Products Table
 ──────────────────────────────────────── */
 function TopProductsTable({ products, loading }) {
-  const maxSales = Math.max(...(products?.map((p) => p.sales_count || 0) || [1]), 1);
+  const safeProducts = Array.isArray(products) ? products : [];
+  const maxSales = Math.max(...(safeProducts.map((p) => p.sales_count || 0) || [1]), 1);
 
   return (
     <div className="bg-white rounded-2xl md:rounded-3xl border border-secondary/10 p-5 md:p-8 shadow-sm">
@@ -184,7 +181,7 @@ function TopProductsTable({ products, loading }) {
             </div>
           ))}
         </div>
-      ) : products?.length === 0 ? (
+      ) : safeProducts.length === 0 ? (
         <div className="py-10 flex flex-col items-center gap-2 text-center">
           <PiPackageLight className="text-4xl text-secondary/20" />
           <p className="font-secondary text-[13px] text-secondary/40">
@@ -193,7 +190,7 @@ function TopProductsTable({ products, loading }) {
         </div>
       ) : (
         <div className="space-y-4">
-          {products.map((product, idx) => {
+          {safeProducts.map((product, idx) => {
             const sales = product.sales_count || 0;
             const barPct = maxSales > 0 ? (sales / maxSales) * 100 : 0;
             const imgSrc =
