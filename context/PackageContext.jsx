@@ -90,8 +90,19 @@ export function PackageProvider({ children }) {
       
       try {
         const { data, error } = await supabase.from('packages').select('*');
-        if (error) throw error;
-        setPackages(data || []);
+        if (error) {
+          console.warn("[PackageContext] Error fetching packages from Supabase:", error.message);
+          const stored = localStorage.getItem("kal_packages");
+          if (stored) {
+            try { setPackages(JSON.parse(stored)); } catch (e) { setPackages(initialPackages); }
+          } else {
+            setPackages(initialPackages);
+          }
+        } else if (data && data.length > 0) {
+          setPackages(data);
+        } else {
+          setPackages(initialPackages);
+        }
       } catch (error) {
         console.error("Error fetching packages:", error.message);
         setPackages(initialPackages); 

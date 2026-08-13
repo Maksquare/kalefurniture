@@ -33,18 +33,27 @@ export function ProductProvider({ children }) {
       
       try {
         const { data, error } = await supabase.from('products').select('*');
-        if (error) throw error;
-        
-        // Normalize: map DB column 'allowcustomcolor' → frontend 'allowcustomcolor' as strict boolean
-        // Supabase column is exactly 'allowcustomcolor' (all lowercase, no underscores)
-        const normalized = (data || []).map(p => ({
-          ...p,
-          allowcustomcolor: p.allowcustomcolor === false ? false : Boolean(p.allowcustomcolor),
-        }));
-        setProducts(normalized);
+        if (error) {
+          console.warn("[ProductContext] Error fetching products from Supabase:", error.message);
+          const stored = localStorage.getItem("kal_products");
+          if (stored) {
+            try { setProducts(JSON.parse(stored)); } catch (e) { setProducts(initialProducts); }
+          } else {
+            setProducts(initialProducts);
+          }
+        } else if (data && data.length > 0) {
+          // Normalize: map DB column 'allowcustomcolor' → frontend 'allowcustomcolor' as strict boolean
+          const normalized = data.map(p => ({
+            ...p,
+            allowcustomcolor: p.allowcustomcolor === false ? false : Boolean(p.allowcustomcolor),
+          }));
+          setProducts(normalized);
+        } else {
+          // Empty DB table or no rows
+          setProducts(initialProducts);
+        }
       } catch (error) {
         console.error("Error fetching products:", error.message);
-        // Fallback to initial data if DB fails
         setProducts(initialProducts); 
       } finally {
         setIsLoaded(true);
