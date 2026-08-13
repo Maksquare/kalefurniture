@@ -10,18 +10,26 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  async function handleSubmit(formData) {
+  async function handleSubmit(e) {
+    e.preventDefault();
     setIsLoading(true);
     setError("");
+
+    const formData = new FormData(e.currentTarget);
+
     try {
       const result = await login(formData);
       if (result?.error) {
         setError(result.error);
+        setIsLoading(false);
+      } else if (result?.success) {
+        window.location.href = result.redirectUrl || "/admin";
+      } else {
+        setIsLoading(false);
       }
-    } catch (e) {
-      console.error("Login error:", e);
-      setError(e.message || "An unexpected error occurred connecting to the server.");
-    } finally {
+    } catch (err) {
+      console.error("Login error:", err);
+      setError(err.message || "An unexpected error occurred connecting to the server.");
       setIsLoading(false);
     }
   }
@@ -49,7 +57,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <form action={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-secondary/40">
               <PiEnvelopeLight size={20} />

@@ -19,13 +19,17 @@ export async function login(formData) {
     return { error: "Database configuration error. Missing environment variables." };
   }
 
+  if (!supabase) {
+    return { error: "Database client error." };
+  }
+
   // Verify credentials securely with Supabase Auth via SSR server client
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
 
-  if (error || !data.session) {
+  if (error || !data?.session) {
     return { error: error?.message || "Invalid email or password" };
   }
 
@@ -38,7 +42,7 @@ export async function login(formData) {
     path: "/",
   });
   
-  redirect("/admin");
+  return { success: true, redirectUrl: "/admin" };
 }
 
 export async function logout() {
@@ -47,7 +51,9 @@ export async function logout() {
 
   try {
     const supabase = await createSupabaseServerClient();
-    await supabase.auth.signOut();
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
   } catch (e) {}
 
   redirect("/admin/login");
