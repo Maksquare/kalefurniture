@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { fetchSalesReport } from "@/app/actions/admin";
+import { resolveImageUrl } from "@/lib/imageUtils";
 import {
   PiChartBarLight,
   PiArrowUpRight,
@@ -121,8 +122,15 @@ function RevenueChart({ months, loading }) {
                 <div className="relative w-full flex justify-center">
                   {/* Tooltip */}
                   <div className="absolute bottom-full mb-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
-                    <div className="bg-secondary text-white font-secondary text-[10px] px-2 py-1 rounded-lg whitespace-nowrap shadow-lg">
-                      {m.revenue > 0 ? `${fmt(m.revenue)} ETB` : "No sales"}
+                    <div className="bg-secondary text-white font-secondary text-[10px] px-2 py-1 rounded-lg whitespace-nowrap shadow-lg flex items-center gap-1">
+                      {m.revenue > 0 ? (
+                        <>
+                          <span>{fmt(m.revenue)}</span>
+                          <span className="font-ethiopic text-[10px]">ብር</span>
+                        </>
+                      ) : (
+                        "No sales"
+                      )}
                     </div>
                   </div>
                   {/* Bar */}
@@ -193,12 +201,13 @@ function TopProductsTable({ products, loading }) {
           {safeProducts.map((product, idx) => {
             const sales = product.sales_count || 0;
             const barPct = maxSales > 0 ? (sales / maxSales) * 100 : 0;
-            const imgSrc =
+            const rawImg =
               Array.isArray(product.images)
                 ? product.images[0]
                 : typeof product.images === "string"
                 ? product.images
                 : null;
+            const imgSrc = rawImg ? resolveImageUrl(rawImg) : null;
 
             return (
               <div key={product.id || product.name || `top-prod-${idx}`} className="flex items-center gap-3">
@@ -240,7 +249,7 @@ function TopProductsTable({ products, loading }) {
                     />
                   </div>
                   <p className="font-secondary text-[10px] text-secondary/40 mt-1 capitalize">
-                    {product.category || "Uncategorized"} · {(product.price || 0).toLocaleString()} ETB
+                    {product.category || "Uncategorized"} · {(product.price || 0).toLocaleString()} <span className="font-ethiopic text-[10px]">ብር</span>
                   </p>
                 </div>
               </div>
@@ -298,7 +307,7 @@ export default function SalesReport() {
     {
       icon: PiCurrencyDollar,
       label: "Total Revenue",
-      value: loading ? "—" : `${fmt(report?.totalRevenue ?? 0)} ETB`,
+      value: loading ? "—" : `${fmt(report?.totalRevenue ?? 0)} ብር`,
       highlight: true,
     },
     {
@@ -309,7 +318,7 @@ export default function SalesReport() {
     {
       icon: PiTrendUp,
       label: "This Month Revenue",
-      value: loading ? "—" : `${fmt(report?.thisMonthRevenue ?? 0)} ETB`,
+      value: loading ? "—" : `${fmt(report?.thisMonthRevenue ?? 0)} ብር`,
       sub: revMoM,
       highlight: currRev > prevRev,
     },

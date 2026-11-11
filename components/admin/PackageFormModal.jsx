@@ -1,11 +1,25 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PiX, PiUploadSimple, PiTrash, PiPlus } from "react-icons/pi";
-import { compressImage } from "@/lib/imageUtils";
+import { compressImage, uploadImageFile } from "@/lib/imageUtils";
+import UploadProgressBar from "./UploadProgressBar";
 
 export default function PackageFormModal({ isOpen, onClose, onSubmit, initialData }) {
+  const [isUploadingMain, setIsUploadingMain] = useState(false);
+  const [uploadingItemIndex, setUploadingItemIndex] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState({
+    active: false,
+    percent: 0,
+    stage: "idle",
+    stageText: "",
+    fileName: "",
+    loadedBytes: 0,
+    totalBytes: 0,
+    error: null,
+  });
+  const abortControllerRef = useRef(null);
   const [formData, setFormData] = useState({
     id: "",
     name: "",
@@ -59,28 +73,127 @@ export default function PackageFormModal({ isOpen, onClose, onSubmit, initialDat
   };
 
   const handleMainImageUpload = async (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    setIsUploadingMain(true);
+    setUploadProgress({
+      active: true,
+      percent: 8,
+      stage: "compressing",
+      stageText: "Optimizing package image dimensions & WebP...",
+      fileName: file.name,
+      loadedBytes: 0,
+      totalBytes: file.size,
+      error: null,
+    });
+
     try {
-      const compressedImage = await compressImage(file);
-      setFormData(prev => ({ ...prev, mainImage: compressedImage }));
+      const uploadedUrl = await uploadImageFile(file, "packages", {
+        maxWidth: 1600,
+        maxHeight: 1600,
+        quality: 0.85,
+        signal: controller.signal,
+        onProgress: (p) => {
+          setUploadProgress(prev => ({
+            ...prev,
+            percent: p.percent,
+            stage: p.stage,
+            stageText: p.stageText,
+            fileName: p.fileName || file.name,
+            loadedBytes: p.loadedBytes || 0,
+            totalBytes: p.totalBytes || file.size,
+            error: p.error || null,
+          }));
+        },
+      });
+
+      setFormData(prev => ({ ...prev, mainImage: uploadedUrl }));
+      setTimeout(() => {
+        setUploadProgress(prev => ({ ...prev, active: false }));
+      }, 2500);
     } catch (error) {
-      console.error("Error compressing image:", error);
-      alert("Failed to process image.");
+      if (error.name !== "AbortError" && !error.message?.includes("aborted")) {
+        console.error("Error uploading main package image to cPanel storage:", error);
+        setUploadProgress(prev => ({
+          ...prev,
+          stage: "error",
+          error: error?.message || "Failed to upload image",
+        }));
+      } else {
+        setUploadProgress(prev => ({ ...prev, active: false }));
+      }
+    } finally {
+      setIsUploadingMain(false);
+      abortControllerRef.current = null;
+      e.target.value = "";
     }
   };
 
   const handleItemImageUpload = async (e, itemIndex) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    setUploadingItemIndex(itemIndex);
+    setUploadProgress({
+      active: true,
+      percent: 8,
+      stage: "compressing",
+      stageText: `Optimizing item #${itemIndex + 1} image...`,
+      fileName: file.name,
+      loadedBytes: 0,
+      totalBytes: file.size,
+      error: null,
+    });
+
     try {
-      const compressedImage = await compressImage(file);
+      const uploadedUrl = await uploadImageFile(file, "packages", {
+        maxWidth: 1200,
+        maxHeight: 1200,
+        quality: 0.85,
+        signal: controller.signal,
+        onProgress: (p) => {
+          setUploadProgress(prev => ({
+            ...prev,
+            percent: p.percent,
+            stage: p.stage,
+            stageText: p.stageText,
+            fileName: p.fileName || file.name,
+            loadedBytes: p.loadedBytes || 0,
+            totalBytes: p.totalBytes || file.size,
+            error: p.error || null,
+          }));
+        },
+      });
+
       const newItems = [...formData.items];
-      newItems[itemIndex].image = compressedImage;
+      newItems[itemIndex].image = uploadedUrl;
       setFormData(prev => ({ ...prev, items: newItems }));
+
+      setTimeout(() => {
+        setUploadProgress(prev => ({ ...prev, active: false }));
+      }, 2500);
     } catch (error) {
-      console.error("Error compressing image:", error);
-      alert("Failed to process image.");
+      if (error.name !== "AbortError" && !error.message?.includes("aborted")) {
+        console.error("Error uploading item image to cPanel storage:", error);
+        setUploadProgress(prev => ({
+          ...prev,
+          stage: "error",
+          error: error?.message || "Failed to upload image",
+        }));
+      } else {
+        setUploadProgress(prev => ({ ...prev, active: false }));
+      }
+    } finally {
+      setUploadingItemIndex(null);
+      abortControllerRef.current = null;
+      e.target.value = "";
     }
   };
 
@@ -161,7 +274,7 @@ export default function PackageFormModal({ isOpen, onClose, onSubmit, initialDat
                   <input required name="collection" value={formData.collection} onChange={handleChange} className="w-full bg-[#FDFBF7] border border-secondary/20 rounded-xl px-4 py-3 font-secondary text-[14px] focus:outline-none focus:border-gold transition-colors" placeholder="e.g. COMPLETE HOME BUNDLE" />
                 </div>
                 <div className="space-y-2">
-                  <label className="font-secondary text-[11px] font-bold tracking-widest uppercase text-secondary/60">Price (ETB)</label>
+                  <label className="font-secondary text-[11px] font-bold tracking-widest uppercase text-secondary/60">Price (ብር)</label>
                   <input required type="number" name="price" value={formData.price} onChange={handleChange} className="w-full bg-[#FDFBF7] border border-secondary/20 rounded-xl px-4 py-3 font-secondary text-[14px] focus:outline-none focus:border-gold transition-colors" placeholder="e.g. 200000" />
                 </div>
                 <div className="space-y-2 flex gap-4">
@@ -190,13 +303,44 @@ export default function PackageFormModal({ isOpen, onClose, onSubmit, initialDat
                     </div>
                   )}
                   <div className="relative flex-1">
-                    <input type="file" accept="image/*" onChange={handleMainImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleMainImageUpload}
+                      disabled={isUploadingMain}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
+                    />
                     <div className="w-full border-2 border-dashed border-secondary/20 rounded-xl px-4 py-6 flex flex-col items-center justify-center gap-2 bg-[#FDFBF7] text-secondary/50 hover:bg-gold/5 hover:border-gold/30 hover:text-gold transition-colors">
-                      <PiUploadSimple size={24} />
-                      <span className="font-secondary text-[13px] font-medium">Upload Main Image</span>
+                      {isUploadingMain ? (
+                        <>
+                          <span className="w-5 h-5 border-2 border-gold border-t-transparent rounded-full animate-spin" />
+                          <span className="font-secondary text-[12px] font-semibold text-secondary">Uploading to cPanel storage...</span>
+                        </>
+                      ) : (
+                        <>
+                          <PiUploadSimple size={24} />
+                          <span className="font-secondary text-[13px] font-medium">Upload Main Image</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
+
+                {/* Smart & Interactive Progress Bar */}
+                {uploadProgress.active && (
+                  <UploadProgressBar
+                    progress={uploadProgress.percent}
+                    stage={uploadProgress.stage}
+                    stageText={uploadProgress.stageText}
+                    fileName={uploadProgress.fileName}
+                    loadedBytes={uploadProgress.loadedBytes}
+                    totalBytes={uploadProgress.totalBytes}
+                    onCancel={() => abortControllerRef.current?.abort()}
+                    onDismiss={() => setUploadProgress(p => ({ ...p, active: false }))}
+                    error={uploadProgress.error}
+                    inline={true}
+                  />
+                )}
               </div>
 
               <div className="space-y-4 pt-6 border-t border-secondary/10">
@@ -231,10 +375,25 @@ export default function PackageFormModal({ isOpen, onClose, onSubmit, initialDat
                           </div>
                         )}
                         <div className="relative flex-1">
-                          <input type="file" accept="image/*" onChange={(e) => handleItemImageUpload(e, idx)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => handleItemImageUpload(e, idx)}
+                            disabled={uploadingItemIndex === idx}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
+                          />
                           <div className="w-full border border-dashed border-secondary/20 rounded-lg px-4 py-3 flex items-center justify-center gap-2 bg-white text-secondary/50 hover:bg-gold/5 hover:text-gold transition-colors">
-                            <PiUploadSimple size={18} />
-                            <span className="font-secondary text-[11px]">Upload Item Image</span>
+                            {uploadingItemIndex === idx ? (
+                              <>
+                                <span className="w-4 h-4 border-2 border-gold border-t-transparent rounded-full animate-spin" />
+                                <span className="font-secondary text-[11px] font-semibold text-secondary">Uploading to cPanel...</span>
+                              </>
+                            ) : (
+                              <>
+                                <PiUploadSimple size={18} />
+                                <span className="font-secondary text-[11px]">Upload Item Image</span>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
