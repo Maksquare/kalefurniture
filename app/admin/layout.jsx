@@ -3,18 +3,41 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PiSquaresFour, PiArmchair, PiSignOut, PiLockKeyLight, PiList, PiX } from "react-icons/pi";
+import { PiSquaresFour, PiArmchair, PiSignOut, PiLockKeyLight, PiList, PiX, PiImageLight, PiFolderLight, PiPaperPlaneTilt } from "react-icons/pi";
+import { getSupabase } from "@/lib/supabase";
 import Logo from "@/components/Logo";
-import { logout } from "./actions";
 
 const sidebarLinks = [
   { name: "Dashboard", href: "/admin", icon: PiSquaresFour },
+  { name: "Hero & Featured", href: "/admin/hero", icon: PiImageLight },
   { name: "Products", href: "/admin/products", icon: PiArmchair },
+  { name: "Categories", href: "/admin/categories", icon: PiFolderLight },
+  { name: "Telegram Admins", href: "/admin/telegram", icon: PiPaperPlaneTilt },
 ];
 
 export default function AdminLayout({ children }) {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  async function handleLogout() {
+    try {
+      const supabase = getSupabase();
+      if (supabase) {
+        // Use scope: 'local' to only clear local storage/state,
+        // without revoking the server-side token (which would block re-login)
+        await supabase.auth.signOut({ scope: 'local' });
+      }
+      document.cookie = "admin_token=; path=/; max-age=0; SameSite=Lax";
+      try {
+        await fetch("/api/admin/logout", { method: "POST" });
+      } catch (e) {}
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      document.cookie = "admin_token=; path=/; max-age=0; SameSite=Lax";
+      window.location.href = "/admin/login";
+    }
+  }
 
   // Hide the sidebar completely on the login page
   if (pathname === "/admin/login") {
@@ -91,15 +114,14 @@ export default function AdminLayout({ children }) {
             <PiSignOut className="text-xl" />
             Exit to Store
           </Link>
-          <form action={logout}>
-            <button
-              type="submit"
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-secondary text-[13px] font-medium text-red-400/80 hover:text-red-400 hover:bg-red-500/10 transition-all duration-300 cursor-pointer"
-            >
-              <PiLockKeyLight className="text-xl" />
-              Lock Dashboard
-            </button>
-          </form>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-secondary text-[13px] font-medium text-red-400/80 hover:text-red-400 hover:bg-red-500/10 transition-all duration-300 cursor-pointer"
+          >
+            <PiLockKeyLight className="text-xl" />
+            Lock Dashboard
+          </button>
         </div>
       </aside>
 
