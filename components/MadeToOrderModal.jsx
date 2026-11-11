@@ -15,6 +15,7 @@ import {
   PiUserLight
 } from "react-icons/pi";
 import toast from "react-hot-toast";
+import { resolveImageUrl } from "@/lib/imageUtils";
 
 const overlayVariants = {
   hidden: { opacity: 0 },
@@ -79,7 +80,7 @@ export default function MadeToOrderModal({ isOpen, onClose, product }) {
       `🏛️ *KAL FURNITURE - MADE TO ORDER REQUEST*`,
       `━━━━━━━━━━━━━━━━━━━━━━`,
       `*Product:* *${product.name}*`,
-      `*Estimated Base Price:* *${(product.price || 0).toLocaleString()} ETB*`,
+      `*Estimated Base Price:* *${(product.price || 0).toLocaleString()} ብር*`,
       product.category ? `*Category:* *${product.category}*` : null,
       product.type ? `*Type:* *${product.type}*` : null,
       ``,
@@ -222,7 +223,7 @@ export default function MadeToOrderModal({ isOpen, onClose, product }) {
                   <div className="bg-white p-4 sm:p-5 rounded-2xl border border-secondary/10 flex items-center gap-4 shadow-sm">
                     <div className="w-20 h-20 rounded-xl bg-[#FAFAFA] flex items-center justify-center shrink-0 border border-secondary/5 overflow-hidden">
                       <img 
-                        src={product.images ? product.images[0] : ''} 
+                        src={resolveImageUrl(product.images ? product.images[0] : '')} 
                         alt={product.name} 
                         className="w-full h-full object-contain mix-blend-multiply p-1"
                       />
@@ -235,7 +236,7 @@ export default function MadeToOrderModal({ isOpen, onClose, product }) {
                         {product.name}
                       </h4>
                       <p className="font-secondary text-[14px] text-secondary/80 font-semibold mt-0.5">
-                        Base Price: {product.price.toLocaleString()} ETB
+                        Base Price: {product.price.toLocaleString()} <span className="font-ethiopic text-[13px]">ብር</span>
                       </p>
                     </div>
                   </div>

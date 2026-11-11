@@ -39,7 +39,7 @@ const CartToast = () => {
               View Cart
             </span>
             <span className="font-primary text-[16px] leading-tight font-medium">
-              {cartTotal.toLocaleString()} ETB
+              {cartTotal.toLocaleString()} <span className="font-ethiopic text-[14px]">ብር</span>
             </span>
           </div>
         </motion.button>

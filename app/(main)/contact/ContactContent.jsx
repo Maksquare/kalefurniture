@@ -114,7 +114,7 @@ export default function ContactContent() {
                 </div>
                 <div>
                   <h3 className="font-primary text-[22px] text-secondary mb-2">Email</h3>
-                  <a href="mailto:info@kalfurniture.et" className="block font-secondary text-[16px] text-secondary/80 hover:text-gold transition-colors">info@kalfurniture.et</a>
+                  <a href="mailto:kalfurnitute01@gmail.com" className="block font-secondary text-[16px] text-secondary/80 hover:text-gold transition-colors">kalfurnitute01@gmail.com</a>
                 </div>
               </div>
             </motion.div>

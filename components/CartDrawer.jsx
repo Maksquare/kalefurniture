@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { PiXLight, PiTrashLight, PiMinusLight, PiPlusLight, PiWhatsappLogoLight } from "react-icons/pi";
 import { useCart } from "../context/CartContext";
 import { incrementSalesCount } from "@/app/actions/checkout";
+import { resolveImageUrl } from "@/lib/imageUtils";
 
 const overlayVariants = {
   hidden: { opacity: 0 },
@@ -50,7 +51,7 @@ const CartDrawer = () => {
         const lines = [
           `*${idx + 1}. ${item.name}*`,
           `  - *Quantity:* *${item.quantity}x*`,
-          `  - *Price:* *${(item.price || 0).toLocaleString()} ETB*`,
+          `  - *Price:* *${(item.price || 0).toLocaleString()} ብር*`,
           item.selectedColor ? `  - *Color / Finish Choice:* *${item.selectedColor}*` : null,
           item.category ? `  - *Category:* *${item.category}*` : null,
           item.dimensions ? `  - *Dimensions / Size:* *${item.dimensions.replace(/\n/g, ', ')}*` : null,
@@ -62,7 +63,7 @@ const CartDrawer = () => {
       })
       .join("\n\n");
 
-    const totalSection = `\n\n━━━━━━━━━━━━━━━━━━━━━━\n💰 *GRAND TOTAL:* *${(cartTotal || 0).toLocaleString()} ETB*\n━━━━━━━━━━━━━━━━━━━━━━`;
+    const totalSection = `\n\n━━━━━━━━━━━━━━━━━━━━━━\n💰 *GRAND TOTAL:* *${(cartTotal || 0).toLocaleString()} ብር*\n━━━━━━━━━━━━━━━━━━━━━━`;
     
     const fullMessage = header + itemsDetails + totalSection;
 
@@ -98,95 +99,119 @@ const CartDrawer = () => {
             className="absolute top-0 right-0 h-full w-full sm:w-[450px] bg-cream border-l border-primary/10 shadow-2xl flex flex-col"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-primary/10">
-              <div className="flex items-center gap-4">
-                <h2 className="font-primary text-2xl text-secondary">Your Cart</h2>
+            <div className="flex items-center justify-between p-6 border-b border-primary/10 bg-white/50 backdrop-blur-sm">
+              <div className="flex items-center gap-3">
+                <h2 className="font-primary text-2xl font-semibold text-secondary">Your Selection</h2>
+                {cartItems.length > 0 && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-gold/15 text-primary font-secondary text-[11px] font-bold">
+                    {cartItems.reduce((sum, item) => sum + item.quantity, 0)}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
                 {cartItems.length > 0 && (
                   <button
                     onClick={clearCart}
-                    className="text-[10px] font-secondary uppercase tracking-widest text-red-500/80 hover:text-red-500 transition-colors"
+                    className="text-[10px] font-secondary uppercase tracking-[0.2em] text-red-500/80 hover:text-red-600 transition-colors"
                   >
-                    Clear All
+                    Clear
                   </button>
                 )}
+                <button
+                  onClick={() => setIsCartOpen(false)}
+                  className="w-9 h-9 flex items-center justify-center rounded-full bg-primary/5 hover:bg-gold hover:text-white transition-all duration-300 group active:scale-95"
+                  aria-label="Close cart"
+                >
+                  <PiXLight className="text-lg text-secondary/70 group-hover:text-white transition-colors" />
+                </button>
               </div>
-              <button
-                onClick={() => setIsCartOpen(false)}
-                className="w-10 h-10 flex items-center justify-center rounded-full bg-primary/5 hover:bg-gold hover:text-white transition-colors duration-300 group"
-              >
-                <PiXLight className="text-xl text-secondary/70 group-hover:text-white transition-colors" />
-              </button>
             </div>
 
             {/* Cart Items */}
             <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
               {cartItems.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center">
-                  <div className="w-16 h-16 rounded-full bg-primary/5 flex items-center justify-center mb-4">
-                    <PiWhatsappLogoLight className="text-3xl text-secondary/30" />
+                <div className="h-full flex flex-col items-center justify-center text-center px-4">
+                  <div className="w-20 h-20 rounded-full bg-primary/5 flex items-center justify-center mb-5 border border-secondary/10">
+                    <PiWhatsappLogoLight className="text-4xl text-gold" />
                   </div>
-                  <h3 className="font-primary text-xl text-secondary mb-2">Your cart is empty</h3>
-                  <p className="font-secondary text-sm text-secondary/50 mb-6">Looks like you haven't added any items yet.</p>
+                  <h3 className="font-primary text-2xl font-semibold text-secondary mb-2">Your cart is empty</h3>
+                  <p className="font-secondary text-[13px] text-secondary/60 max-w-[260px] mb-6 font-light leading-relaxed">
+                    Discover handcrafted bespoke pieces and signature collections designed for your living space.
+                  </p>
                   <button
                     onClick={() => setIsCartOpen(false)}
-                    className="px-6 py-3 border border-secondary/20 text-secondary/80 font-secondary text-[11px] tracking-widest uppercase hover:bg-secondary hover:text-white transition-colors"
+                    className="px-6 py-3 rounded-full bg-primary text-white font-secondary text-[12px] tracking-wider uppercase font-medium hover:bg-gold hover:text-primary transition-all duration-300 shadow-sm active:scale-95"
                   >
-                    Continue Shopping
+                    Explore Collections
                   </button>
                 </div>
               ) : (
-                <div className="flex flex-col gap-6">
-                  {cartItems.map((item) => {
-                    const key = item.cartKey || item.id;
+                <div className="flex flex-col gap-4">
+                  {cartItems.map((item, idx) => {
+                    const key = item.cartKey || item.id || `cart-item-${idx}`;
                     return (
-                      <div key={key} className="flex gap-4 group">
+                      <div key={key} className="flex gap-4 p-3.5 bg-white rounded-2xl border border-secondary/10 shadow-[0_2px_12px_rgba(0,0,0,0.02)] group hover:border-gold/30 transition-all duration-300">
                         {/* Thumbnail */}
-                        <div className="w-24 h-24 rounded-xl overflow-hidden bg-white shrink-0 relative border border-primary/10 shadow-sm p-1">
-                          <img src={item.images ? item.images[0] : item.image} alt={item.name} className="w-full h-full object-contain mix-blend-multiply" />
+                        <div className="w-20 h-20 rounded-xl overflow-hidden bg-[#F6F3EC] shrink-0 relative border border-secondary/10 flex items-center justify-center">
+                          <img 
+                            src={resolveImageUrl(item.images ? item.images[0] : item.image)} 
+                            alt={item.name} 
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                          />
                         </div>
                         
                         {/* Info */}
-                        <div className="flex flex-col flex-1 py-0.5 min-w-0">
-                          <div className="flex justify-between items-start mb-1 gap-2">
-                            <h4 className="font-primary text-lg text-secondary leading-tight truncate">{item.name}</h4>
-                            <button 
-                              onClick={() => removeFromCart(key)}
-                              className="text-secondary/40 hover:text-red-500 transition-colors p-1"
-                              title="Remove item"
-                            >
-                              <PiTrashLight size={18} />
-                            </button>
-                          </div>
-
-                          {/* Selected Color Badge */}
-                          {item.selectedColor && (
-                            <div className="flex items-center gap-1.5 mb-2">
-                              <span className="w-2 h-2 rounded-full bg-gold shrink-0" />
-                              <span className="font-secondary text-[11px] text-secondary/70 capitalize font-medium">
-                                Color: <strong className="text-secondary">{item.selectedColor}</strong>
-                              </span>
+                        <div className="flex flex-col flex-1 min-w-0 justify-between">
+                          <div>
+                            <div className="flex justify-between items-start mb-0.5 gap-2">
+                              <h4 className="font-primary text-[17px] font-semibold text-secondary leading-tight truncate">{item.name}</h4>
+                              <button 
+                                onClick={() => removeFromCart(key)}
+                                className="text-secondary/40 hover:text-red-500 transition-colors p-1 -mr-1"
+                                title="Remove item"
+                              >
+                                <PiTrashLight size={16} />
+                              </button>
                             </div>
-                          )}
 
-                          <p className="font-secondary text-sm text-gold font-semibold mb-3">{(item.price || 0).toLocaleString()} ETB</p>
+                            {/* Selected Color Badge */}
+                            {item.selectedColor && (
+                              <div className="flex items-center gap-1.5 mb-1.5">
+                                <span className="w-2 h-2 rounded-full bg-gold shrink-0" />
+                                <span className="font-secondary text-[11px] text-secondary/70 capitalize">
+                                  Finish: <strong className="text-secondary font-medium">{item.selectedColor}</strong>
+                                </span>
+                              </div>
+                            )}
+
+                            <p className="font-secondary text-[14px] text-primary font-bold">
+                              {(item.price || 0).toLocaleString()} <span className="font-ethiopic text-[11px] font-normal text-secondary/65">ብር</span>
+                            </p>
+                          </div>
                           
                           {/* Quantity Controls */}
-                          <div className="mt-auto flex items-center gap-4">
-                            <div className="flex items-center bg-primary/5 rounded-full border border-primary/10">
+                          <div className="mt-2 flex items-center justify-between">
+                            <div className="flex items-center bg-secondary/5 rounded-full border border-secondary/10 px-1 py-0.5">
                               <button 
                                 onClick={() => updateQuantity(key, -1)}
-                                className="w-8 h-8 flex items-center justify-center text-secondary/70 hover:text-secondary"
+                                className="w-6 h-6 flex items-center justify-center text-secondary/70 hover:text-secondary active:scale-90 transition-transform"
+                                aria-label="Decrease quantity"
                               >
-                                <PiMinusLight size={14} />
+                                <PiMinusLight size={12} />
                               </button>
-                              <span className="w-6 text-center font-secondary text-sm text-secondary font-medium">{item.quantity}</span>
+                              <span className="w-6 text-center font-secondary text-[13px] text-secondary font-semibold">{item.quantity}</span>
                               <button 
                                 onClick={() => updateQuantity(key, 1)}
-                                className="w-8 h-8 flex items-center justify-center text-secondary/70 hover:text-secondary"
+                                className="w-6 h-6 flex items-center justify-center text-secondary/70 hover:text-secondary active:scale-90 transition-transform"
+                                aria-label="Increase quantity"
                               >
-                                <PiPlusLight size={14} />
+                                <PiPlusLight size={12} />
                               </button>
                             </div>
+                            
+                            <span className="font-secondary text-[12px] font-semibold text-secondary/60">
+                              {((item.price || 0) * item.quantity).toLocaleString()} <span className="font-ethiopic text-[10px]">ብር</span>
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -198,24 +223,27 @@ const CartDrawer = () => {
 
             {/* Footer */}
             {cartItems.length > 0 && (
-              <div className="p-6 border-t border-primary/10 bg-ivory">
-                <div className="flex justify-between items-end mb-6">
-                  <span className="font-secondary text-sm text-secondary/60 tracking-wider uppercase">Subtotal</span>
-                  <span className="font-primary text-3xl text-secondary">{cartTotal.toLocaleString()} ETB</span>
+              <div className="p-6 border-t border-primary/10 bg-ivory/80 backdrop-blur-md">
+                <div className="flex justify-between items-baseline mb-4">
+                  <span className="font-secondary text-[12px] font-bold text-secondary/60 tracking-[0.2em] uppercase">Estimated Subtotal</span>
+                  <span className="font-primary text-[28px] font-bold text-primary flex items-baseline gap-1.5">
+                    {cartTotal.toLocaleString()} <span className="font-ethiopic text-[18px] font-normal text-secondary/65">ብር</span>
+                  </span>
                 </div>
                 
                 <button
                   onClick={handleCheckout}
-                  className="w-full h-14 bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center gap-3 transition-colors duration-300 rounded-sm"
+                  className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-2.5 transition-all duration-300 rounded-full shadow-[0_8px_25px_rgba(5,150,105,0.25)] hover:shadow-[0_10px_30px_rgba(5,150,105,0.35)] active:scale-98 cursor-pointer"
                 >
-                  <PiWhatsappLogoLight size={20} />
-                  <span className="font-secondary text-xs font-semibold tracking-widest uppercase">
-                    Checkout via WhatsApp
+                  <PiWhatsappLogoLight size={22} />
+                  <span className="font-secondary text-[14px] font-bold tracking-wide">
+                    Order via WhatsApp
                   </span>
                 </button>
-                <p className="text-center font-secondary text-[11px] text-secondary/40 mt-4">
-                  Taxes and shipping calculated at checkout.
-                </p>
+                <div className="flex items-center justify-center gap-2 mt-3 text-secondary/50 font-secondary text-[11px]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span>Direct consultation • Pay upon delivery or bank transfer</span>
+                </div>
               </div>
             )}
           </motion.div>

@@ -20,13 +20,16 @@ import {
 } from "react-icons/pi";
 import { useProducts } from "@/context/ProductContext";
 import { useCart } from "@/context/CartContext";
+import { useCategories } from "@/context/CategoryContext";
 import ProductModal from "./ProductModal";
+import { resolveImageUrl } from "@/lib/imageUtils";
+import { efficientSearchProducts } from "@/lib/catalogIntelligence";
 
 const PRICE_RANGES = [
   { label: "All Prices", min: 0, max: Infinity },
-  { label: "Under 50,000 ETB", min: 0, max: 50000 },
-  { label: "50,000 - 150,000 ETB", min: 50000, max: 150000 },
-  { label: "Over 150,000 ETB", min: 150000, max: Infinity },
+  { label: "Under 50,000 ብር", min: 0, max: 50000 },
+  { label: "50,000 - 150,000 ብር", min: 50000, max: 150000 },
+  { label: "Over 150,000 ብር", min: 150000, max: Infinity },
 ];
 
 const HIGHLIGHTS = [
@@ -40,6 +43,7 @@ const PAGE_SIZE_OPTIONS = [12, 24, 48];
 
 const CollectionsGrid = () => {
   const { products, isLoaded } = useProducts();
+  const { categories: catalogCategories } = useCategories();
   const { addToCart } = useCart();
   const [selectedProduct, setSelectedProduct] = useState(null);
   
@@ -74,8 +78,17 @@ const CollectionsGrid = () => {
 
   // Extract unique filters
   const categories = useMemo(() => {
-    return ["All", ...Array.from(new Set(products.map(p => p.category).filter(Boolean)))];
-  }, [products]);
+    const list = ["All"];
+    if (Array.isArray(catalogCategories)) {
+      catalogCategories.forEach(c => {
+        if (c.label && !list.includes(c.label)) list.push(c.label);
+      });
+    }
+    products.forEach(p => {
+      if (p.category && !list.includes(p.category)) list.push(p.category);
+    });
+    return list;
+  }, [catalogCategories, products]);
 
   const availableColors = useMemo(() => {
     if (!products.length) return ["All"];
@@ -89,14 +102,23 @@ const CollectionsGrid = () => {
     return ["All", ...Array.from(new Set(types))];
   }, [products]);
 
+  // Best & Efficient Multi-Attribute Search
+  const searchedProducts = useMemo(() => {
+    if (!searchQuery.trim()) return products;
+    return efficientSearchProducts(products, searchQuery);
+  }, [products, searchQuery]);
+
   // Filter products based on all criteria
   const filteredProducts = useMemo(() => {
-    return products.filter(product => {
-      // Text Search
-      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            product.category.toLowerCase().includes(searchQuery.toLowerCase());
+    return searchedProducts.filter(product => {
       // Category
-      const matchesCategory = activeCategory === "All" || product.category === activeCategory;
+      const matchesCategory = activeCategory === "All" || 
+        product.category === activeCategory ||
+        (product.category || "").toLowerCase() === activeCategory.toLowerCase() ||
+        (Array.isArray(catalogCategories) && catalogCategories.some(c => 
+          (c.label?.toLowerCase() === activeCategory.toLowerCase() || c.id?.toLowerCase() === activeCategory.toLowerCase() || c.slug?.toLowerCase() === activeCategory.toLowerCase()) &&
+          (product.category?.toLowerCase() === c.label?.toLowerCase() || product.category?.toLowerCase() === c.id?.toLowerCase() || product.category?.toLowerCase() === c.slug?.toLowerCase())
+        ));
       // Color
       const matchesColor = selectedColor === "All" || product.color === selectedColor;
       // Type
@@ -106,9 +128,9 @@ const CollectionsGrid = () => {
       // Highlight
       const matchesHighlight = selectedHighlight === "All" || product[selectedHighlight] === true;
 
-      return matchesSearch && matchesCategory && matchesColor && matchesType && matchesPrice && matchesHighlight;
+      return matchesCategory && matchesColor && matchesType && matchesPrice && matchesHighlight;
     });
-  }, [products, searchQuery, activeCategory, selectedColor, selectedType, selectedPrice, selectedHighlight]);
+  }, [searchedProducts, activeCategory, selectedColor, selectedType, selectedPrice, selectedHighlight]);
 
   // Reset pagination when filters change
   useEffect(() => {
@@ -389,13 +411,13 @@ const CollectionsGrid = () => {
                 >
                   {/* Image Area */}
                   <div 
-                    className="relative w-full aspect-[4/5] bg-[#FAFAFA] flex items-center justify-center p-6 cursor-pointer overflow-hidden"
+                    className="relative w-full aspect-square bg-[#F6F3EC] flex items-center justify-center cursor-pointer overflow-hidden"
                     onClick={() => setSelectedProduct(product)}
                   >
                     <img 
-                      src={product.images[0]} 
+                      src={resolveImageUrl(product.images?.[0])} 
                       alt={product.name}
-                      className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-700"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                     />
                     <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                     
@@ -441,7 +463,7 @@ const CollectionsGrid = () => {
 
                     <div className="flex items-center justify-between">
                       <span className="font-secondary text-[16px] font-semibold text-secondary">
-                        {product.price.toLocaleString()} ETB
+                        {product.price.toLocaleString()} <span className="font-ethiopic text-[14px]">ብር</span>
                       </span>
                       {product.outOfStock ? (
                         <button 

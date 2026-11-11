@@ -6,6 +6,7 @@ import { PiXLight } from "react-icons/pi";
 import ProductModal from "./ProductModal";
 import { useProducts } from "../context/ProductContext";
 import { useCart } from "../context/CartContext";
+import { resolveImageUrl } from "@/lib/imageUtils";
 
 const overlayVariants = {
   hidden: { opacity: 0 },
@@ -102,7 +103,7 @@ const GalleryModal = ({ isOpen, onClose, category }) => {
                     >
                       <div className="cursor-pointer" onClick={() => setSelectedProduct({ ...product, category })}>
                         <img 
-                          src={product.images[0]} 
+                          src={resolveImageUrl(product.images?.[0])} 
                           alt={product.name}
                           className="w-full h-auto object-cover transform transition-transform duration-700 group-hover:scale-105"
                           loading="lazy"
@@ -118,7 +119,7 @@ const GalleryModal = ({ isOpen, onClose, category }) => {
                           >
                             {product.name}
                           </h4>
-                          <p className="font-secondary text-[14px] text-white/70 mb-4">{product.price.toLocaleString()} ETB</p>
+                          <p className="font-secondary text-[14px] text-white/70 mb-4">{product.price.toLocaleString()} <span className="font-ethiopic text-[13px]">ብር</span></p>
                           
                           <div className="flex items-center justify-between gap-4">
                             <span 

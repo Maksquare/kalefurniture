@@ -31,8 +31,8 @@ const contactItems = [
   },
   {
     icon: RiMailFill,
-    value: "info@kalfurniture.et",
-    href:  "mailto:info@kalfurniture.et",
+    value: "kalfurnitute01@gmail.com",
+    href:  "mailto:kalfurnitute01@gmail.com",
   },
 ];
 
@@ -74,7 +74,7 @@ const animItem = {
 /* ─── Footer ─────────────────────────────────────────────────────── */
 const Footer = () => {
   return (
-    <footer className="relative bg-primary overflow-hidden">
+    <footer className="relative bg-primary overflow-hidden" data-header-theme="dark">
       {/* ── Background elements ───────────────────────────────────── */}
       <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-gold/50 to-transparent" />
       <div className="absolute -top-48 -left-48 w-[600px] h-[600px] rounded-full bg-gold/[0.04] blur-3xl pointer-events-none" />

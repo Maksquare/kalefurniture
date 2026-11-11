@@ -4,6 +4,9 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { getSupabase } from "@/lib/supabase";
 import { allProducts as initialProducts } from "@/lib/data";
 import { serverAddProduct, serverUpdateProduct, serverDeleteProduct } from "@/app/actions/admin";
+import { setCookie, getCookieJson } from "@/lib/cookies";
+import { broadcastChange, subscribeToBroadcast, initSupabaseRealtime } from "@/lib/realtimeSync";
+import { resolveImageUrl } from "@/lib/imageUtils";
 import toast from "react-hot-toast";
 
 const ProductContext = createContext();
@@ -13,165 +16,292 @@ export function ProductProvider({ children }) {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
+    // 1. Instant Cache from LocalStorage or Cookies
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("kal_products");
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          setProducts(parsed.map(p => ({
+            ...p,
+            images: Array.isArray(p.images) ? p.images.map(resolveImageUrl) : (p.images ? [resolveImageUrl(p.images)] : []),
+          })));
+        } catch (e) {
+          setProducts(initialProducts);
+        }
+      } else {
+        setProducts(initialProducts);
+      }
+    }
+
+    // 2. Fetch products from Supabase
     async function fetchProducts() {
       const supabase = getSupabase();
       if (!supabase) {
-        // Fallback to local data if Supabase is not configured yet
-        const stored = localStorage.getItem("kal_products");
-        if (stored) {
-          try {
-            setProducts(JSON.parse(stored));
-          } catch (e) {
-            setProducts(initialProducts);
-          }
-        } else {
-          setProducts(initialProducts);
-        }
         setIsLoaded(true);
         return;
       }
       
       try {
-        const { data, error } = await supabase.from('products').select('*');
+        let { data, error } = await supabase.from('products').select('*').order('id', { ascending: false });
+        if (error) {
+          console.warn("[ProductContext] Ordering by id failed, retrying without order:", error.message);
+          const fallback = await supabase.from('products').select('*');
+          data = fallback.data;
+          error = fallback.error;
+        }
+
         if (error) {
           console.warn("[ProductContext] Error fetching products from Supabase:", error.message);
-          const stored = localStorage.getItem("kal_products");
-          if (stored) {
-            try { setProducts(JSON.parse(stored)); } catch (e) { setProducts(initialProducts); }
-          } else {
-            setProducts(initialProducts);
-          }
         } else if (data && data.length > 0) {
-          // Normalize: map DB column 'allowcustomcolor' → frontend 'allowcustomcolor' as strict boolean
           const normalized = data.map(p => ({
             ...p,
+            images: Array.isArray(p.images) ? p.images.map(resolveImageUrl) : (p.images ? [resolveImageUrl(p.images)] : []),
             allowcustomcolor: p.allowcustomcolor === false ? false : Boolean(p.allowcustomcolor),
           }));
           setProducts(normalized);
-        } else {
-          // Empty DB table or no rows
-          setProducts(initialProducts);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("kal_products", JSON.stringify(normalized));
+          }
+          setCookie("kal_products_sync", { count: normalized.length, timestamp: Date.now() }, 30);
         }
       } catch (error) {
-        console.error("Error fetching products:", error.message);
-        setProducts(initialProducts); 
+        console.error("[ProductContext] Error fetching products:", error.message);
       } finally {
         setIsLoaded(true);
       }
     }
     fetchProducts();
+
+    // 3. Realtime Cross-tab Broadcast Listener (Changes in /admin reflect live on / without reload)
+    const unsubscribeBroadcast = subscribeToBroadcast((event) => {
+      if (!event || !event.type) return;
+
+      if (event.type === "PRODUCTS_UPDATED" && Array.isArray(event.payload)) {
+        console.log("[ProductContext Realtime] Received live products list update");
+        setProducts(event.payload);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("kal_products", JSON.stringify(event.payload));
+        }
+      } else if (event.type === "PRODUCT_MUTATED" && event.payload) {
+        const { eventType, new: newRow, old: oldRow } = event.payload;
+        console.log("[ProductContext Realtime] Database mutation:", eventType);
+        
+        if (eventType === "INSERT" && newRow) {
+          setProducts((prev) => {
+            if (prev.some(p => p.id === newRow.id)) return prev;
+            return [{
+              ...newRow,
+              allowcustomcolor: newRow.allowcustomcolor === false ? false : Boolean(newRow.allowcustomcolor),
+            }, ...prev];
+          });
+        } else if (eventType === "UPDATE" && newRow) {
+          setProducts((prev) => prev.map(p => p.id === newRow.id ? {
+            ...p,
+            ...newRow,
+            allowcustomcolor: newRow.allowcustomcolor === false ? false : Boolean(newRow.allowcustomcolor),
+          } : p));
+        } else if (eventType === "DELETE" && oldRow) {
+          setProducts((prev) => prev.filter(p => p.id !== oldRow.id));
+        }
+      }
+    });
+
+    // 4. Supabase Database-level Realtime Postgres Changes
+    const unsubscribeSupabase = initSupabaseRealtime({
+      onProductChange: (payload) => {
+        const { eventType, new: newRow, old: oldRow } = payload;
+        if (eventType === "INSERT" && newRow) {
+          setProducts((prev) => {
+            if (prev.some(p => p.id === newRow.id)) return prev;
+            return [{
+              ...newRow,
+              allowcustomcolor: newRow.allowcustomcolor === false ? false : Boolean(newRow.allowcustomcolor),
+            }, ...prev];
+          });
+        } else if (eventType === "UPDATE" && newRow) {
+          setProducts((prev) => prev.map(p => p.id === newRow.id ? {
+            ...p,
+            ...newRow,
+            allowcustomcolor: newRow.allowcustomcolor === false ? false : Boolean(newRow.allowcustomcolor),
+          } : p));
+        } else if (eventType === "DELETE" && oldRow) {
+          setProducts((prev) => prev.filter(p => p.id !== oldRow.id));
+        }
+      },
+    });
+
+    return () => {
+      unsubscribeBroadcast();
+      unsubscribeSupabase();
+    };
   }, []);
 
   const addProduct = async (newProduct) => {
-    // Generate a temporary ID if one isn't provided
-    const tempId = newProduct.id || `temp-${Date.now()}`;
+    const supabase = getSupabase();
+    const tempId = newProduct.id || `prod-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
     const productWithId = { ...newProduct, id: tempId };
     
-    // If this product is featured, turn off featured for all other products in the same category
-    if (productWithId.featured) {
-      setProducts((prev) => prev.map(p => 
-        p.category === productWithId.category ? { ...p, featured: false } : p
-      ));
-      
-      if (supabase) {
-        // Optimistic state was updated above. The server action handles the DB side.
+    // 1. Instant Optimistic State Update
+    let updatedList;
+    setProducts((prev) => {
+      const filtered = productWithId.featured
+        ? prev.map(p => p.category === productWithId.category ? { ...p, featured: false } : p)
+        : prev;
+      updatedList = [productWithId, ...filtered];
+      return updatedList;
+    });
+
+    // 2. Instant Cookie & LocalStorage Sync
+    setCookie("kal_products_sync", { count: updatedList?.length || 0, timestamp: Date.now() }, 30);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("kal_products", JSON.stringify(updatedList || []));
+    }
+
+    // 3. Realtime Cross-tab Broadcast
+    broadcastChange("PRODUCTS_UPDATED", updatedList);
+
+    // 4. Asynchronous Database Write
+    (async () => {
+      let success = false;
+      try {
+        const result = await serverAddProduct(productWithId);
+        if (result && result.success) {
+          success = true;
+          if (result.data?.id) {
+            // Update tempId to real ID if returned
+            setProducts(prev => prev.map(p => p.id === tempId ? { ...p, id: result.data.id } : p));
+          }
+        }
+      } catch (e) {
+        console.warn("[ProductContext] Server action add failed, falling back to direct insert:", e.message);
       }
-    }
 
-    // Optimistic update
-    setProducts((prev) => [productWithId, ...prev]);
-
-    if (!supabase) {
-      // Local storage fallback
-      const updatedList = [productWithId, ...products].map(p => 
-        (productWithId.featured && p.category === productWithId.category && p.id !== tempId) ? { ...p, featured: false } : p
-      );
-      localStorage.setItem("kal_products", JSON.stringify(updatedList));
-      return;
-    }
-
-    try {
-      const result = await serverAddProduct(productWithId);
-      if (!result.success) {
-        throw new Error(result.error);
+      if (!success && supabase) {
+        try {
+          const payload = {
+            ...productWithId,
+            allowcustomcolor: productWithId.allowCustomColor !== undefined 
+              ? Boolean(productWithId.allowCustomColor) 
+              : (productWithId.allowcustomcolor !== undefined ? Boolean(productWithId.allowcustomcolor) : true),
+          };
+          delete payload.showInHero;
+          delete payload.allowCustomColor;
+          delete payload.allow_custom_color;
+          const { error } = await supabase.from('products').insert([payload]);
+          if (error) throw error;
+        } catch (err) {
+          console.error("[ProductContext] Direct insert failed:", err.message);
+          toast.error(err.message || "Failed to sync product with database");
+        }
       }
-      toast.success("Product added successfully");
-    } catch (error) {
-      console.error("Error adding product via server action:", error.message);
-      toast.error(error.message || "Failed to add product");
-      // Revert optimistic update on error by reloading from DB
-      const { data } = await supabase.from('products').select('*');
-      if (data) setProducts(data);
-    }
+    })();
+
+    toast.success("Product added successfully");
   };
 
   const updateProduct = async (id, updatedData) => {
-    // If we are setting THIS product to featured
-    if (updatedData.featured === true) {
-      const category = updatedData.category || products.find(p => p.id === id)?.category;
-      
-      // Turn off featured for all other products in the same category
-      setProducts((prev) => prev.map(p => 
-        (p.category === category && p.id !== id) ? { ...p, featured: false } : p
-      ));
-    }
+    const supabase = getSupabase();
 
-    // Optimistic update for the targeted product
-    setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...updatedData } : p)));
-
-    if (!supabase) {
-      // Local storage fallback
-      let currentProducts = products;
+    // 1. Instant Optimistic State Update
+    let updatedList;
+    setProducts((prev) => {
+      let list = prev;
       if (updatedData.featured === true) {
-        const category = updatedData.category || products.find(p => p.id === id)?.category;
-        currentProducts = products.map(p => 
-          (p.category === category && p.id !== id) ? { ...p, featured: false } : p
-        );
+        const category = updatedData.category || prev.find(p => p.id === id)?.category;
+        list = prev.map(p => (p.category === category && p.id !== id) ? { ...p, featured: false } : p);
       }
-      const updated = currentProducts.map((p) => (p.id === id ? { ...p, ...updatedData } : p));
-      localStorage.setItem("kal_products", JSON.stringify(updated));
-      return;
+      updatedList = list.map((p) => (p.id === id ? { ...p, ...updatedData } : p));
+      return updatedList;
+    });
+
+    // 2. Instant Cookie & LocalStorage Sync
+    setCookie("kal_products_sync", { count: updatedList?.length || 0, timestamp: Date.now() }, 30);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("kal_products", JSON.stringify(updatedList || []));
     }
 
-    try {
-      const result = await serverUpdateProduct(id, updatedData);
-      if (!result.success) {
-        throw new Error(result.error);
+    // 3. Realtime Cross-tab Broadcast
+    broadcastChange("PRODUCTS_UPDATED", updatedList);
+
+    // 4. Asynchronous Database Write
+    (async () => {
+      let success = false;
+      try {
+        const result = await serverUpdateProduct(id, updatedData);
+        if (result && result.success) {
+          success = true;
+        }
+      } catch (e) {
+        console.warn("[ProductContext] Server action update failed, falling back to direct update:", e.message);
       }
-      toast.success("Product updated successfully");
-    } catch (error) {
-      console.error("Error updating product via server action:", error.message);
-      toast.error(error.message || "Failed to update product");
-      // Reload from DB to fix state if update failed
-      const { data } = await supabase.from('products').select('*');
-      if (data) setProducts(data);
-    }
+
+      if (!success && supabase) {
+        try {
+          const payload = {
+            ...updatedData,
+            allowcustomcolor: updatedData.allowCustomColor !== undefined 
+              ? Boolean(updatedData.allowCustomColor) 
+              : (updatedData.allowcustomcolor !== undefined ? Boolean(updatedData.allowcustomcolor) : true),
+          };
+          delete payload.showInHero;
+          delete payload.allowCustomColor;
+          delete payload.allow_custom_color;
+          const { error } = await supabase.from('products').update(payload).eq('id', id);
+          if (error) throw error;
+        } catch (err) {
+          console.error("[ProductContext] Direct update failed:", err.message);
+          toast.error(err.message || "Failed to sync update with database");
+        }
+      }
+    })();
+
+    toast.success("Product updated successfully");
   };
 
   const deleteProduct = async (id) => {
-    // Optimistic update
-    const previousProducts = [...products];
-    setProducts((prev) => prev.filter((p) => p.id !== id));
+    const supabase = getSupabase();
 
-    if (!supabase) {
-      // Local storage fallback
-      const updated = products.filter((p) => p.id !== id);
-      localStorage.setItem("kal_products", JSON.stringify(updated));
-      return;
+    // 1. Instant Optimistic State Update
+    let updatedList;
+    setProducts((prev) => {
+      updatedList = prev.filter((p) => p.id !== id);
+      return updatedList;
+    });
+
+    // 2. Instant Cookie & LocalStorage Sync
+    setCookie("kal_products_sync", { count: updatedList?.length || 0, timestamp: Date.now() }, 30);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("kal_products", JSON.stringify(updatedList || []));
     }
 
-    try {
-      const result = await serverDeleteProduct(id);
-      if (!result.success) {
-        throw new Error(result.error);
+    // 3. Realtime Cross-tab Broadcast
+    broadcastChange("PRODUCTS_UPDATED", updatedList);
+
+    // 4. Asynchronous Database Write
+    (async () => {
+      let success = false;
+      try {
+        const result = await serverDeleteProduct(id);
+        if (result && result.success) {
+          success = true;
+        }
+      } catch (e) {
+        console.warn("[ProductContext] Server action delete failed, falling back to direct delete:", e.message);
       }
-      toast.success("Product deleted successfully");
-    } catch (error) {
-      console.error("Error deleting product via server action:", error.message);
-      toast.error(error.message || "Failed to delete product");
-      // Revert on error
-      setProducts(previousProducts);
-    }
+
+      if (!success && supabase) {
+        try {
+          const { error } = await supabase.from('products').delete().eq('id', id);
+          if (error) throw error;
+        } catch (err) {
+          console.error("[ProductContext] Direct delete failed:", err.message);
+          toast.error(err.message || "Failed to delete product from database");
+        }
+      }
+    })();
+
+    toast.success("Product deleted successfully");
   };
 
   return (

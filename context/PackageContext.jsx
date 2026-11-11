@@ -3,6 +3,9 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { getSupabase } from "@/lib/supabase";
 import { serverAddPackage, serverUpdatePackage, serverDeletePackage } from "@/app/actions/admin";
+import { setCookie, getCookieJson } from "@/lib/cookies";
+import { broadcastChange, subscribeToBroadcast, initSupabaseRealtime } from "@/lib/realtimeSync";
+import { resolveImageUrl } from "@/lib/imageUtils";
 import toast from "react-hot-toast";
 
 const initialPackages = [
@@ -12,8 +15,8 @@ const initialPackages = [
     collection: "COMPLETE HOME BUNDLE",
     description: "The ultimate curated collection. Transform your entire living space with our premium selection of matching, high-end pieces.",
     mainImage: "/assets/img/hero/beige-chair.jpeg",
-    bgColor: "#FAF8F5", // Light beige
-    accentColor: "#6B2B31", // Burgundy
+    bgColor: "#FAF8F5",
+    accentColor: "#6B2B31",
     items: [
       {
         name: "LIVING ROOM SOFA",
@@ -44,8 +47,8 @@ const initialPackages = [
     collection: "ESSENTIALS COLLECTION",
     description: "Clean lines and understated elegance. Create a tranquil environment where less is truly more.",
     mainImage: "/assets/img/living-room/living-room-12.jpg",
-    bgColor: "#F0F0F0", // Light grey
-    accentColor: "#2A2A2A", // Dark charcoal
+    bgColor: "#F0F0F0",
+    accentColor: "#2A2A2A",
     items: [
       {
         name: "MINIMALIST LOUNGE SOFA",
@@ -69,129 +72,250 @@ export function PackageProvider({ children }) {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    async function fetchPackages() {
-      const supabase = getSupabase();
-
-      if (!supabase) {
-        // Fallback to local data if Supabase is not configured yet
-        const stored = localStorage.getItem("kal_packages");
-        if (stored) {
-          try {
-            setPackages(JSON.parse(stored));
-          } catch (e) {
-            setPackages(initialPackages);
-          }
-        } else {
+    // 1. Instant Cache from LocalStorage or Cookies
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("kal_packages");
+      if (stored) {
+        try {
+          setPackages(JSON.parse(stored));
+        } catch (e) {
           setPackages(initialPackages);
         }
+      } else {
+        setPackages(initialPackages);
+      }
+    }
+
+    // 2. Fetch from Database
+    async function fetchPackages() {
+      const supabase = getSupabase();
+      if (!supabase) {
         setIsLoaded(true);
         return;
       }
       
       try {
-        const { data, error } = await supabase.from('packages').select('*');
+        let { data, error } = await supabase.from('packages').select('*').order('id', { ascending: false });
+        if (error) {
+          console.warn("[PackageContext] Ordering by id failed, retrying without order:", error.message);
+          const fallback = await supabase.from('packages').select('*');
+          data = fallback.data;
+          error = fallback.error;
+        }
+
         if (error) {
           console.warn("[PackageContext] Error fetching packages from Supabase:", error.message);
-          const stored = localStorage.getItem("kal_packages");
-          if (stored) {
-            try { setPackages(JSON.parse(stored)); } catch (e) { setPackages(initialPackages); }
-          } else {
-            setPackages(initialPackages);
-          }
         } else if (data && data.length > 0) {
-          setPackages(data);
-        } else {
-          setPackages(initialPackages);
+          const normalized = data.map(pkg => ({
+            ...pkg,
+            mainImage: resolveImageUrl(pkg.mainImage),
+            items: Array.isArray(pkg.items) ? pkg.items.map(item => ({
+              ...item,
+              image: resolveImageUrl(item.image)
+            })) : []
+          }));
+          setPackages(normalized);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("kal_packages", JSON.stringify(normalized));
+          }
+          setCookie("kal_packages_sync", { count: normalized.length, timestamp: Date.now() }, 30);
         }
       } catch (error) {
-        console.error("Error fetching packages:", error.message);
-        setPackages(initialPackages); 
+        console.error("[PackageContext] Error fetching packages:", error.message);
       } finally {
         setIsLoaded(true);
       }
     }
     fetchPackages();
+
+    // 3. Realtime Cross-tab Broadcast Listener
+    const unsubscribeBroadcast = subscribeToBroadcast((event) => {
+      if (!event || !event.type) return;
+
+      if (event.type === "PACKAGES_UPDATED" && Array.isArray(event.payload)) {
+        console.log("[PackageContext Realtime] Received live packages list update");
+        setPackages(event.payload);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("kal_packages", JSON.stringify(event.payload));
+        }
+      } else if (event.type === "PACKAGE_MUTATED" && event.payload) {
+        const { eventType, new: newRow, old: oldRow } = event.payload;
+        console.log("[PackageContext Realtime] Database mutation:", eventType);
+        
+        if (eventType === "INSERT" && newRow) {
+          setPackages((prev) => {
+            if (prev.some(p => p.id === newRow.id)) return prev;
+            return [newRow, ...prev];
+          });
+        } else if (eventType === "UPDATE" && newRow) {
+          setPackages((prev) => prev.map(p => p.id === newRow.id ? { ...p, ...newRow } : p));
+        } else if (eventType === "DELETE" && oldRow) {
+          setPackages((prev) => prev.filter(p => p.id !== oldRow.id));
+        }
+      }
+    });
+
+    // 4. Supabase Database-level Realtime Postgres Changes
+    const unsubscribeSupabase = initSupabaseRealtime({
+      onPackageChange: (payload) => {
+        const { eventType, new: newRow, old: oldRow } = payload;
+        if (eventType === "INSERT" && newRow) {
+          setPackages((prev) => {
+            if (prev.some(p => p.id === newRow.id)) return prev;
+            return [newRow, ...prev];
+          });
+        } else if (eventType === "UPDATE" && newRow) {
+          setPackages((prev) => prev.map(p => p.id === newRow.id ? { ...p, ...newRow } : p));
+        } else if (eventType === "DELETE" && oldRow) {
+          setPackages((prev) => prev.filter(p => p.id !== oldRow.id));
+        }
+      },
+    });
+
+    return () => {
+      unsubscribeBroadcast();
+      unsubscribeSupabase();
+    };
   }, []);
 
   const addPackage = async (newPackage) => {
     const supabase = getSupabase();
-    const tempId = newPackage.id || `pkg-${Date.now()}`;
+    const tempId = newPackage.id || `pkg-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
     const packageWithId = { ...newPackage, id: tempId };
     
-    // Optimistic update
-    setPackages((prev) => [packageWithId, ...prev]);
+    // 1. Instant Optimistic State Update
+    let updatedList;
+    setPackages((prev) => {
+      updatedList = [packageWithId, ...prev];
+      return updatedList;
+    });
 
-    if (!supabase) {
-      localStorage.setItem("kal_packages", JSON.stringify([packageWithId, ...packages]));
-      return;
+    // 2. Instant Cookie & LocalStorage Sync
+    setCookie("kal_packages_sync", { count: updatedList?.length || 0, timestamp: Date.now() }, 30);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("kal_packages", JSON.stringify(updatedList || []));
     }
 
-    try {
-      const result = await serverAddPackage(packageWithId);
-      if (!result.success) {
-        throw new Error(result.error);
+    // 3. Realtime Cross-tab Broadcast
+    broadcastChange("PACKAGES_UPDATED", updatedList);
+
+    // 4. Asynchronous Database Write
+    (async () => {
+      let success = false;
+      try {
+        const result = await serverAddPackage(packageWithId);
+        if (result && result.success) {
+          success = true;
+          if (result.data?.id) {
+            setPackages(prev => prev.map(p => p.id === tempId ? { ...p, id: result.data.id } : p));
+          }
+        }
+      } catch (e) {
+        console.warn("[PackageContext] Server action add package failed, trying direct:", e.message);
       }
-      toast.success("Package added successfully");
-    } catch (error) {
-      console.error("Error adding package via server action:", error.message);
-      toast.error(error.message || "Failed to add package");
-      // Revert optimistic update
-      setPackages((prev) => prev.filter(p => p.id !== tempId));
-    }
+
+      if (!success && supabase) {
+        try {
+          const { error } = await supabase.from('packages').insert([packageWithId]);
+          if (error) throw error;
+        } catch (err) {
+          console.error("[PackageContext] Direct insert package failed:", err.message);
+          toast.error(err.message || "Failed to sync package with database");
+        }
+      }
+    })();
+
+    toast.success("Package added successfully");
   };
 
   const updatePackage = async (id, updatedData) => {
     const supabase = getSupabase();
     
-    // Optimistic update
-    setPackages((prev) => prev.map((p) => (p.id === id ? { ...p, ...updatedData } : p)));
+    // 1. Instant Optimistic State Update
+    let updatedList;
+    setPackages((prev) => {
+      updatedList = prev.map((p) => (p.id === id ? { ...p, ...updatedData } : p));
+      return updatedList;
+    });
 
-    if (!supabase) {
-      const updated = packages.map((p) => (p.id === id ? { ...p, ...updatedData } : p));
-      localStorage.setItem("kal_packages", JSON.stringify(updated));
-      return;
+    // 2. Instant Cookie & LocalStorage Sync
+    setCookie("kal_packages_sync", { count: updatedList?.length || 0, timestamp: Date.now() }, 30);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("kal_packages", JSON.stringify(updatedList || []));
     }
 
-    try {
-      const result = await serverUpdatePackage(id, updatedData);
-      if (!result.success) {
-        throw new Error(result.error);
+    // 3. Realtime Cross-tab Broadcast
+    broadcastChange("PACKAGES_UPDATED", updatedList);
+
+    // 4. Asynchronous Database Write
+    (async () => {
+      let success = false;
+      try {
+        const result = await serverUpdatePackage(id, updatedData);
+        if (result && result.success) {
+          success = true;
+        }
+      } catch (e) {
+        console.warn("[PackageContext] Server action update package failed, trying direct:", e.message);
       }
-      toast.success("Package updated successfully");
-    } catch (error) {
-      console.error("Error updating package via server action:", error.message);
-      toast.error(error.message || "Failed to update package");
-      // Reload to fix state
-      const { data } = await supabase.from('packages').select('*');
-      if (data) setPackages(data);
-    }
+
+      if (!success && supabase) {
+        try {
+          const { error } = await supabase.from('packages').update(updatedData).eq('id', id);
+          if (error) throw error;
+        } catch (err) {
+          console.error("[PackageContext] Direct update package failed:", err.message);
+          toast.error(err.message || "Failed to sync package update with database");
+        }
+      }
+    })();
+
+    toast.success("Package updated successfully");
   };
 
   const deletePackage = async (id) => {
     const supabase = getSupabase();
-    
-    // Optimistic update
-    const previous = [...packages];
-    setPackages((prev) => prev.filter((p) => p.id !== id));
 
-    if (!supabase) {
-      const updated = packages.filter((p) => p.id !== id);
-      localStorage.setItem("kal_packages", JSON.stringify(updated));
-      return;
+    // 1. Instant Optimistic State Update
+    let updatedList;
+    setPackages((prev) => {
+      updatedList = prev.filter((p) => p.id !== id);
+      return updatedList;
+    });
+
+    // 2. Instant Cookie & LocalStorage Sync
+    setCookie("kal_packages_sync", { count: updatedList?.length || 0, timestamp: Date.now() }, 30);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("kal_packages", JSON.stringify(updatedList || []));
     }
 
-    try {
-      const result = await serverDeletePackage(id);
-      if (!result.success) {
-        throw new Error(result.error);
+    // 3. Realtime Cross-tab Broadcast
+    broadcastChange("PACKAGES_UPDATED", updatedList);
+
+    // 4. Asynchronous Database Write
+    (async () => {
+      let success = false;
+      try {
+        const result = await serverDeletePackage(id);
+        if (result && result.success) {
+          success = true;
+        }
+      } catch (e) {
+        console.warn("[PackageContext] Server action delete package failed, trying direct:", e.message);
       }
-      toast.success("Package deleted successfully");
-    } catch (error) {
-      console.error("Error deleting package via server action:", error.message);
-      toast.error(error.message || "Failed to delete package");
-      // Revert on error
-      setPackages(previous);
-    }
+
+      if (!success && supabase) {
+        try {
+          const { error } = await supabase.from('packages').delete().eq('id', id);
+          if (error) throw error;
+        } catch (err) {
+          console.error("[PackageContext] Direct delete package failed:", err.message);
+          toast.error(err.message || "Failed to delete package from database");
+        }
+      }
+    })();
+
+    toast.success("Package deleted successfully");
   };
 
   return (

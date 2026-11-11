@@ -1,11 +1,13 @@
 "use server";
-
-import { supabaseAdmin } from "@/lib/supabase-admin";
+ 
+import { getServiceRoleClient, getSupabasePublicClient } from "@/lib/supabase-admin";
+import { notifyAdminsOnNewOrder } from "@/lib/telegram";
 
 export async function incrementSalesCount(cartItems) {
   try {
-    if (!supabaseAdmin) {
-      console.warn("Supabase Admin client not configured. Skipping sales count update.");
+    const supabase = getServiceRoleClient() || getSupabasePublicClient();
+    if (!supabase) {
+      console.warn("[incrementSalesCount] Supabase client not configured.");
       return { success: false, error: "Database client not configured." };
     }
 
@@ -13,33 +15,38 @@ export async function incrementSalesCount(cartItems) {
 
     // 1. Update sales_count on each product
     for (const item of cartItems) {
-      const { data: product, error: fetchError } = await supabaseAdmin
-        .from('products')
-        .select('sales_count')
-        .eq('id', item.id)
-        .single();
+      if (!item.id) continue;
+      try {
+        const { data: product, error: fetchError } = await supabase
+          .from('products')
+          .select('sales_count')
+          .eq('id', item.id)
+          .single();
+          
+        if (fetchError) {
+          console.warn(`[incrementSalesCount] Error fetching sales_count for product ${item.id}:`, fetchError.message);
+          continue;
+        }
         
-      if (fetchError) {
-        console.error(`Error fetching sales_count for product ${item.id}:`, fetchError.message);
-        continue;
-      }
-      
-      const currentSales = product?.sales_count || 0;
-      const newSales = currentSales + (item.quantity || 1);
-      
-      const { error: updateError } = await supabaseAdmin
-        .from('products')
-        .update({ sales_count: newSales })
-        .eq('id', item.id);
+        const currentSales = product?.sales_count || 0;
+        const newSales = currentSales + (item.quantity || 1);
         
-      if (updateError) {
-        console.error(`Error updating sales_count for product ${item.id}:`, updateError.message);
+        const { error: updateError } = await supabase
+          .from('products')
+          .update({ sales_count: newSales })
+          .eq('id', item.id);
+          
+        if (updateError) {
+          console.warn(`[incrementSalesCount] Error updating sales_count for product ${item.id}:`, updateError.message);
+        }
+      } catch (prodErr) {
+        console.warn(`[incrementSalesCount] Failed to update product ${item.id}:`, prodErr.message);
       }
     }
 
     // 2. Record the order in the orders table for revenue reporting
     const totalEtb = cartItems.reduce(
-      (sum, item) => sum + (item.price || 0) * (item.quantity || 1),
+      (sum, item) => sum + (Number(item.price) || 0) * (item.quantity || 1),
       0
     );
     const itemCount = cartItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
@@ -49,9 +56,10 @@ export async function incrementSalesCount(cartItems) {
       name: item.name,
       price: item.price,
       quantity: item.quantity || 1,
+      selectedColor: item.selectedColor || null,
     }));
 
-    const { error: orderError } = await supabaseAdmin
+    const { error: orderError } = await supabase
       .from('orders')
       .insert([{
         total_etb: totalEtb,
@@ -61,8 +69,18 @@ export async function incrementSalesCount(cartItems) {
       }]);
 
     if (orderError) {
-      // Non-fatal — sales_count already updated; just log the order insert failure
-      console.error("[incrementSalesCount] Failed to insert order row:", orderError.message);
+      console.warn("[incrementSalesCount] Failed to insert order row:", orderError.message);
+    } else {
+      // Send real-time instant alert to Telegram Admin
+      try {
+        await notifyAdminsOnNewOrder({
+          totalEtb,
+          itemCount,
+          items: orderSnapshot,
+        });
+      } catch (tgErr) {
+        console.warn("[incrementSalesCount] Telegram order alert failed:", tgErr.message);
+      }
     }
     
     return { success: true };
@@ -71,3 +89,4 @@ export async function incrementSalesCount(cartItems) {
     return { success: false, error: error.message || "Failed to update sales counts" };
   }
 }
+

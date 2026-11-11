@@ -17,7 +17,7 @@ const TikTokEmbed = ({ url, poster }) => {
           <PiTiktokLogo className="w-8 h-8" />
         </div>
         
-        <h3 className="text-white text-xl font-medium mb-3 font-serif">
+        <h3 className="text-white text-xl font-medium mb-3 font-primary">
           TikTok Restricted Video
         </h3>
         

@@ -1,413 +1,560 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  ShoppingCart,
-  Check,
-  Crown,
-  Sparkles,
-  Truck,
-  ShieldCheck,
-  Package,
-  ArrowRight,
-} from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useCart } from "@/context/CartContext";
+import { 
+  PiArrowRightLight, 
+  PiArrowLeftLight, 
+  PiShoppingCartSimpleBold,
+  PiCheckCircleFill,
+  PiChatCircleDotsLight,
+  PiShieldCheckLight,
+  PiSparkleLight,
+  PiRulerLight,
+  PiCubeLight,
+  PiCrownLight,
+  PiPackageLight,
+  PiMagnifyingGlassPlusLight
+} from "react-icons/pi";
 import { usePackages } from "@/context/PackageContext";
+import { useCart } from "@/context/CartContext";
+import { resolveImageUrl } from "@/lib/imageUtils";
 
-/* ─────────────────────────────────────────
-   PACKAGE CARD
-───────────────────────────────────────── */
-const PackageCard = ({ pkg }) => {
+// Helper to clean up titles (e.g. "KAL SIGNATUREe" -> "Kal Signature Suite")
+const formatSuiteTitle = (name) => {
+  if (!name) return "Kal Signature Suite";
+  let cleaned = name.trim();
+  if (cleaned.toLowerCase().endsWith("signaturee")) {
+    cleaned = cleaned.slice(0, -1);
+  }
+  if (!cleaned.toLowerCase().includes("suite") && !cleaned.toLowerCase().includes("bundle")) {
+    cleaned = `${cleaned} Suite`;
+  }
+  return cleaned;
+};
+
+// Helper to extract or synthesize clean specs
+const getCleanSpecs = (item) => {
+  const specs = [];
+  if (item?.specs && typeof item.specs === "object") {
+    Object.entries(item.specs).forEach(([k, v]) => {
+      if (v && typeof v === "string" && v.trim()) {
+        specs.push({ label: k, value: v.trim() });
+      }
+    });
+  }
+  if (specs.length === 0 && item?._rawSpecs) {
+    specs.push({ label: "Dimensions", value: String(item._rawSpecs).trim() });
+  }
+  if (specs.length === 0) {
+    specs.push(
+      { label: "Craftsmanship", value: "Solid Hardwood Frame & High-Density Core" },
+      { label: "Sizing", value: "Bespoke / Custom Living Room Proportions" }
+    );
+  }
+  return specs;
+};
+
+const PackageView = ({ pkg }) => {
   const { addToCart } = useCart();
+  const [activeItemIdx, setActiveItemIdx] = useState(0);
   const [isAdded, setIsAdded] = useState(false);
-  const [activeIdx, setActiveIdx] = useState(0);
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
+  const imageContainerRef = useRef(null);
 
-  const activeItem = pkg.items?.[activeIdx] || pkg.items?.[0];
-  const isJpeg = (url) => url && (url.endsWith(".jpg") || url.endsWith(".jpeg"));
+  const items = Array.isArray(pkg.items) && pkg.items.length > 0 
+    ? pkg.items 
+    : [{ name: pkg.name, image: pkg.mainImage, specs: {} }];
+  
+  const activeItem = items[activeItemIdx] || items[0];
+  const activeImageSrc = resolveImageUrl(activeItem?.image || pkg.mainImage);
+  const activeSpecs = getCleanSpecs(activeItem);
 
-  const handleAdd = () => {
+  const suitePrice = pkg.price || 0;
+  // Estimated individual retail value calculation (showing ~18-20% bundle savings)
+  const estimatedRetailValue = Math.round((suitePrice * 1.18) / 1000) * 1000;
+  const bundleSavings = estimatedRetailValue - suitePrice;
+
+  const handleAddSuiteToCart = () => {
     if (isAdded) return;
     addToCart({
       id: pkg.id,
-      name: pkg.name,
+      name: formatSuiteTitle(pkg.name),
       price: pkg.price,
-      images: [pkg.mainImage || activeItem?.image],
+      images: [activeImageSrc || pkg.mainImage],
       quantity: 1,
+      isPackage: true,
+      piecesCount: items.length
     });
     setIsAdded(true);
     setTimeout(() => setIsAdded(false), 2500);
   };
 
+  const handleMouseMove = (e) => {
+    if (!imageContainerRef.current) return;
+    const rect = imageContainerRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    setZoomPos({ x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) });
+  };
+
+  const itemsListString = items.map((it, idx) => `${idx + 1}. ${it.name}`).join(", ");
+  const whatsappUrl = `https://wa.me/251936358805?text=${encodeURIComponent(
+    `Hello Kal Furniture Showroom, I am interested in the ${formatSuiteTitle(pkg.name)} package (${suitePrice.toLocaleString()} ብር) which includes: ${itemsListString}. Can you advise on custom room sizing, wood finishes, and delivery timeline?`
+  )}`;
+
   return (
-    <article className="group snap-start shrink-0 w-[88vw] sm:w-[400px] lg:w-[420px] bg-white rounded-3xl border border-secondary/10 overflow-hidden flex flex-col transition-shadow duration-300 hover:shadow-[0_24px_60px_-20px_rgba(0,0,0,0.14)]">
+    <div className="w-full bg-white rounded-3xl sm:rounded-[2.5rem] border border-secondary/10 shadow-[0_15px_50px_rgba(0,0,0,0.04)] overflow-hidden">
+      
+      {/* ── Top Suite Header Bar ── */}
+      <div className="bg-[#FAF8F5] border-b border-secondary/10 px-6 sm:px-10 py-5 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <span className="px-3.5 py-1.5 rounded-full bg-gold/15 text-gold font-secondary text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] border border-gold/30 flex items-center gap-1.5">
+            <PiCrownLight className="text-gold text-sm" />
+            {pkg.collection || "Architectural Suite"}
+          </span>
+          <span className="text-secondary/25">•</span>
+          <span className="font-secondary text-[12px] font-semibold text-secondary/70 flex items-center gap-1.5">
+            <PiPackageLight className="text-gold" />
+            {items.length} Coordinated Pieces
+          </span>
+        </div>
 
-      {/* Hero Image Stage */}
-      <div className="relative aspect-[4/3] overflow-hidden bg-[#FAFAFA]">
-        <AnimatePresence mode="wait">
-          <motion.img
-            key={activeItem?.image || pkg.mainImage}
-            src={activeItem?.image || pkg.mainImage}
-            alt={activeItem?.name || pkg.name}
-            initial={{ opacity: 0, scale: 1.04 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.04 }}
-            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-            className={`absolute inset-0 w-full h-full transition-transform duration-500 group-hover:scale-[1.03] ${
-              isJpeg(activeItem?.image || pkg.mainImage)
-                ? "object-cover"
-                : "object-contain mix-blend-multiply p-6"
-            }`}
-          />
-        </AnimatePresence>
-
-        {/* Badges */}
-        <span className="absolute top-4 left-4 px-3 py-1 rounded-full bg-white/90 backdrop-blur text-secondary font-secondary text-[10px] font-bold uppercase tracking-[0.14em] border border-secondary/10 flex items-center gap-1.5">
-          <Crown size={11} className="text-gold" />
-          {pkg.collection}
-        </span>
-
-        <span className="absolute top-4 right-4 px-3 py-1 rounded-full bg-gold text-white font-secondary text-[10px] font-bold uppercase tracking-[0.1em] flex items-center gap-1.5">
-          <Package size={11} />
-          {pkg.items?.length || 0} Pieces
-        </span>
-
-        {/* Piece Thumb Strip (only if multiple items) */}
-        {pkg.items?.length > 1 && (
-          <div className="absolute bottom-3 inset-x-3 flex gap-2">
-            {pkg.items.map((item, i) => (
-              <button
-                key={i}
-                onClick={() => setActiveIdx(i)}
-                className={`flex-1 h-1.5 rounded-full transition-all duration-300 ${
-                  activeIdx === i ? "bg-gold" : "bg-white/50 hover:bg-white/80"
-                }`}
-                aria-label={`View ${item.name}`}
-              />
-            ))}
-          </div>
-        )}
+        {/* Savings Highlight Pill */}
+        <div className="flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-600/10 border border-emerald-600/20 text-emerald-800 font-secondary text-[11px] font-bold tracking-wide">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+          <span>Save ~{bundleSavings.toLocaleString()} <span className="font-ethiopic">ብር</span> as a Curated Ensemble</span>
+        </div>
       </div>
 
-      {/* Content */}
-      <div className="flex flex-col flex-1 p-5 sm:p-6">
-
-        {/* Current piece label */}
-        {pkg.items?.length > 1 && (
-          <p className="font-secondary text-[10px] font-bold uppercase tracking-[0.15em] text-gold mb-1">
-            {activeItem?.name} · {activeIdx + 1}/{pkg.items.length}
-          </p>
-        )}
-
-        <h3 className="font-primary text-[22px] sm:text-[24px] text-secondary font-normal leading-tight mb-3">
-          {pkg.name}
-        </h3>
-
-        {pkg.description && (
-          <p className="font-secondary text-[12.5px] text-secondary/60 leading-relaxed mb-4 line-clamp-2">
-            {pkg.description}
-          </p>
-        )}
-
-        {/* Items checklist */}
-        {pkg.items?.length > 0 && (
-          <ul className="space-y-1.5 mb-5">
-            {pkg.items.map((item, i) => (
-              <li
-                key={i}
-                onClick={() => setActiveIdx(i)}
-                className={`flex items-center gap-2 font-secondary text-[12px] cursor-pointer transition-colors duration-150 ${
-                  activeIdx === i ? "text-secondary font-semibold" : "text-secondary/55 hover:text-secondary/80"
-                }`}
-              >
-                <Check
-                  size={12}
-                  strokeWidth={2.5}
-                  className={activeIdx === i ? "text-gold" : "text-secondary/30"}
-                />
-                {item.name}
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {/* Specs for active item */}
-        {activeItem?.specs && (
-          <div className="flex flex-wrap gap-1.5 mb-5 pb-4 border-b border-secondary/8">
-            {Object.entries(activeItem.specs).slice(0, 4).map(([k, v]) => (
-              <span key={k} className="px-2 py-0.5 rounded-full bg-secondary/5 font-secondary text-[10px] text-secondary/60">
-                {k}: {v}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Price + CTA */}
-        <div className="mt-auto flex items-center justify-between gap-3">
-          <div>
-            <span className="font-secondary text-[10px] font-bold uppercase tracking-[0.1em] text-secondary/40 block mb-0.5">
-              Bundle Price
-            </span>
-            <span className="font-primary text-[22px] sm:text-[24px] text-gold font-semibold leading-none">
-              {(pkg.price || 0).toLocaleString()} ETB
-            </span>
-          </div>
-
-          <button
-            onClick={handleAdd}
-            disabled={isAdded}
-            className={`h-11 px-5 rounded-full font-secondary text-[11px] font-bold uppercase tracking-widest flex items-center gap-2 shrink-0 transition-all duration-300 ${
-              isAdded
-                ? "bg-emerald-600 text-white"
-                : "bg-gold text-primary shadow-[0_4px_18px_rgba(217,182,110,0.4)] hover:shadow-[0_6px_24px_rgba(217,182,110,0.5)] active:scale-95"
-            }`}
+      {/* ── Main Split Showcase ── */}
+      <div className="p-6 sm:p-10 lg:p-12 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+        
+        {/* ── LEFT COLUMN: Architectural Visual Viewport (7 cols) ── */}
+        <div className="lg:col-span-7 flex flex-col items-center">
+          
+          {/* Main Visual Stage */}
+          <div 
+            ref={imageContainerRef}
+            onMouseEnter={() => setIsZoomed(true)}
+            onMouseLeave={() => setIsZoomed(false)}
+            onMouseMove={handleMouseMove}
+            className="relative w-full aspect-[4/3] sm:aspect-[16/11] rounded-2xl sm:rounded-3xl overflow-hidden bg-[#F6F3EC] border border-secondary/10 shadow-[0_12px_40px_rgba(0,0,0,0.06)] cursor-crosshair flex items-center justify-center"
           >
-            {isAdded ? (
-              <>
-                <Check size={15} strokeWidth={2.5} />
-                <span>Added</span>
-              </>
-            ) : (
-              <>
-                <ShoppingCart size={15} />
-                <span>Add</span>
-              </>
-            )}
-          </button>
+            <AnimatePresence mode="wait">
+              <motion.img
+                key={activeImageSrc || 'active-pkg-img'}
+                src={activeImageSrc}
+                alt={activeItem?.name || pkg.name}
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ 
+                  opacity: 1, 
+                  scale: isZoomed ? 1.45 : 1,
+                  transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`
+                }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ 
+                  opacity: { duration: 0.3 },
+                  scale: { duration: 0.25, ease: "easeOut" }
+                }}
+                className="w-full h-full object-cover select-none"
+              />
+            </AnimatePresence>
+
+            {/* Top-Left Active Item Floating Chip */}
+            <div className="absolute top-4 left-4 z-20 px-3.5 py-1.5 rounded-full bg-white/95 backdrop-blur-md border border-black/5 font-secondary text-[11px] font-bold uppercase tracking-wider text-secondary shadow-md flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-gold" />
+              <span>Viewing: <strong className="text-primary">{activeItem.name}</strong></span>
+              <span className="text-secondary/40 font-normal ml-1">({activeItemIdx + 1} of {items.length})</span>
+            </div>
+
+            {/* Top-Right Magnify Prompt */}
+            <div className="hidden sm:flex absolute top-4 right-4 z-20 px-3 py-1 rounded-full bg-black/40 backdrop-blur-md text-white font-secondary text-[10px] font-semibold uppercase tracking-wider items-center gap-1">
+              <PiMagnifyingGlassPlusLight /> Hover to Zoom
+            </div>
+
+            {/* Bottom Brand Watermark */}
+            <div className="absolute bottom-3 left-4 pointer-events-none z-10">
+              <span className="font-primary text-[13px] tracking-[0.15em] uppercase text-secondary/40 font-medium drop-shadow-xs">
+                Kal Furniture • Master Suite
+              </span>
+            </div>
+          </div>
+
+          {/* Active Piece Specification Badges */}
+          <div className="w-full mt-4 flex flex-wrap items-center justify-center gap-2.5">
+            {activeSpecs.map((spec, sIdx) => (
+              <div 
+                key={sIdx}
+                className="px-3.5 py-1.5 rounded-xl bg-[#FAF8F5] border border-secondary/10 shadow-xs flex items-center gap-2 text-center"
+              >
+                <span className="font-secondary text-[10px] font-bold uppercase tracking-wider text-secondary/50">
+                  {spec.label}:
+                </span>
+                <span className="font-secondary text-[11.5px] font-semibold text-secondary">
+                  {spec.value}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Interactive Suite Piece Thumbnails Strip (Smooth Horizontal Rail) */}
+          {items.length > 1 && (
+            <div className="w-full flex flex-col items-center mt-6 pt-2">
+              <span className="font-secondary text-[10.5px] font-bold uppercase tracking-[0.2em] text-secondary/45 mb-2.5">
+                Explore Suite Pieces ({items.length} Included)
+              </span>
+              <div 
+                className="flex items-center gap-3 max-w-full overflow-x-auto no-scrollbar scroll-smooth py-1.5 px-1"
+                style={{ scrollSnapType: "x mandatory" }}
+              >
+                {items.map((item, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setActiveItemIdx(idx)}
+                    style={{ scrollSnapAlign: "start" }}
+                    className={`group relative flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl shrink-0 transition-all duration-300 cursor-pointer ${
+                      activeItemIdx === idx 
+                        ? "bg-white ring-2 ring-gold shadow-md scale-[1.02] border-transparent" 
+                        : "bg-[#FAF8F5] hover:bg-white border border-secondary/10 opacity-80 hover:opacity-100 shadow-xs"
+                    }`}
+                  >
+                    <div className="w-11 h-11 rounded-xl overflow-hidden bg-[#ECE8E1] shrink-0 border border-secondary/5">
+                      <img 
+                        src={resolveImageUrl(item.image)} 
+                        alt={item.name} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                    <div className="text-left pr-1 min-w-[70px] max-w-[130px]">
+                      <span className="block font-secondary text-[9px] font-bold uppercase tracking-wider text-secondary/40">
+                        Piece {String(idx + 1).padStart(2, "0")}
+                      </span>
+                      <span className="block font-secondary text-[12px] font-bold text-secondary leading-tight truncate">
+                        {item.name}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
         </div>
 
-        {/* Warranty badge */}
-        <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-secondary/8">
-          <ShieldCheck size={13} className="text-gold shrink-0" />
-          <span className="font-secondary text-[11px] text-secondary/50">10-Year Structural Warranty</span>
+        {/* ── RIGHT COLUMN: Configuration, Value & Actions (5 cols) ── */}
+        <div className="lg:col-span-5 flex flex-col justify-between h-full space-y-6">
+          
+          <div>
+            {/* Title & Collection */}
+            <div className="flex items-center gap-2 mb-2">
+              <span className="font-secondary text-[11px] font-bold uppercase tracking-[0.25em] text-gold">
+                Curated Ensemble
+              </span>
+              <span className="text-secondary/20">•</span>
+              <span className="font-secondary text-[11px] font-medium text-secondary/60 uppercase tracking-wider">
+                Full Room Solution
+              </span>
+            </div>
+
+            <h2 className="font-primary text-[34px] sm:text-[42px] lg:text-[46px] font-normal text-secondary leading-[1.08] tracking-tight mb-3">
+              {formatSuiteTitle(pkg.name)}
+            </h2>
+
+            {/* Price & Smart Math Box */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#FAF8F5] border border-secondary/10 mb-5">
+              <div className="flex items-baseline justify-between gap-3 mb-2">
+                <div>
+                  <span className="block font-secondary text-[10px] font-bold uppercase tracking-wider text-secondary/40">
+                    Individual Item Value
+                  </span>
+                  <span className="font-secondary text-sm sm:text-base text-secondary/50 line-through">
+                    {estimatedRetailValue.toLocaleString()} <span className="font-ethiopic text-xs">ብር</span>
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="block font-secondary text-[10px] font-bold uppercase tracking-wider text-gold">
+                    Package Price
+                  </span>
+                  <span className="font-secondary text-2xl sm:text-3xl font-bold text-primary">
+                    {suitePrice.toLocaleString()} <span className="text-sm font-normal text-secondary/60 font-ethiopic">ብር</span>
+                  </span>
+                </div>
+              </div>
+
+              <div className="pt-2.5 border-t border-secondary/10 flex items-center justify-between text-[11px] font-secondary font-semibold">
+                <span className="text-emerald-700">✦ Total Bundle Savings:</span>
+                <span className="text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  Save {bundleSavings.toLocaleString()} <span className="font-ethiopic">ብር</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Suite Editorial Description */}
+            <p className="font-secondary text-[13.5px] sm:text-[14px] text-secondary/75 leading-relaxed mb-6">
+              {pkg.description || "The ultimate curated collection. Transform your entire living space with our premium selection of matching, high-end pieces tailored by Kal Furniture artisans."}
+            </p>
+
+            {/* "What's Included in this Suite" Interactive Cards */}
+            <div className="space-y-2.5 mb-6">
+              <div className="flex items-center justify-between">
+                <span className="font-secondary text-[11px] font-bold uppercase tracking-[0.2em] text-secondary/50">
+                  Included in this Suite ({items.length} items)
+                </span>
+                <span className="font-secondary text-[10px] text-secondary/40 italic">
+                  Tap to preview in stage
+                </span>
+              </div>
+
+              {items.map((item, i) => {
+                const isItemActive = activeItemIdx === i;
+                const rawSpec = item._rawSpecs || (item.specs && Object.values(item.specs).join(" · ")) || "Solid ash wood, high-resilience foam";
+                return (
+                  <div
+                    key={i}
+                    onClick={() => setActiveItemIdx(i)}
+                    className={`p-3.5 rounded-xl border transition-all duration-200 cursor-pointer flex items-center justify-between gap-3 ${
+                      isItemActive
+                        ? "bg-white border-gold shadow-sm ring-1 ring-gold/40"
+                        : "bg-[#FAF8F5] border-secondary/10 hover:border-gold/30 hover:bg-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                        isItemActive ? "bg-gold text-white" : "bg-secondary/10 text-secondary/50"
+                      }`}>
+                        <PiCheckCircleFill size={15} />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className={`font-secondary text-[13px] font-semibold truncate ${
+                          isItemActive ? "text-secondary font-bold" : "text-secondary/80"
+                        }`}>
+                          {item.name}
+                        </h4>
+                        <p className="font-secondary text-[11px] text-secondary/55 truncate">
+                          {rawSpec}
+                        </p>
+                      </div>
+                    </div>
+
+                    <span className={`font-secondary text-[10px] font-bold uppercase tracking-wider shrink-0 ${
+                      isItemActive ? "text-gold" : "text-secondary/30"
+                    }`}>
+                      {isItemActive ? "Viewing" : "Select"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+          </div>
+
+          {/* ── Conversion Actions ── */}
+          <div className="pt-4 border-t border-secondary/10 space-y-3">
+            
+            {/* Primary Add Suite to Cart */}
+            <button
+              onClick={handleAddSuiteToCart}
+              disabled={isAdded}
+              className={`w-full h-13 px-6 py-3.5 flex items-center justify-center gap-2 rounded-full font-secondary text-[12px] font-bold tracking-widest uppercase transition-all duration-300 shadow-md hover:shadow-lg active:scale-98 cursor-pointer ${
+                isAdded 
+                  ? "bg-emerald-600 text-white shadow-emerald-500/25" 
+                  : "bg-primary text-white hover:bg-gold hover:text-white"
+              }`}
+            >
+              <AnimatePresence mode="wait">
+                {isAdded ? (
+                  <motion.div
+                    key="added"
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    className="flex items-center gap-2"
+                  >
+                    <PiCheckCircleFill size={19} />
+                    Added Complete Suite to Cart
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="add"
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    className="flex items-center gap-2"
+                  >
+                    <PiShoppingCartSimpleBold size={18} />
+                    Add Complete Suite to Cart
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </button>
+
+            {/* Secondary WhatsApp Concierge Button */}
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full h-12 px-5 rounded-full border border-secondary/20 hover:border-gold hover:text-gold text-secondary flex items-center justify-center gap-2 font-secondary text-[12px] font-bold tracking-wider uppercase transition-all duration-300 bg-white shadow-xs"
+            >
+              <PiChatCircleDotsLight size={19} className="text-emerald-600" />
+              <span>Consult Concierge via WhatsApp</span>
+            </a>
+
+            {/* White-Glove Reassurance line */}
+            <div className="flex items-center justify-center gap-2 pt-1 text-center">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+              <p className="font-secondary text-[11px] text-secondary/60">
+                Includes complimentary White-Glove delivery & assembly in Addis Ababa
+              </p>
+            </div>
+
+          </div>
+
         </div>
 
       </div>
-    </article>
+
+      {/* ── Brand Trust & Craftsmanship Footer Strip ── */}
+      <div className="bg-[#FAF8F5] border-t border-secondary/10 px-6 sm:px-12 py-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+        <div className="flex flex-col items-center gap-1.5">
+          <div className="w-10 h-10 rounded-2xl bg-gold/15 text-gold flex items-center justify-center mb-1">
+            <PiShieldCheckLight size={22} />
+          </div>
+          <span className="font-secondary text-[12px] font-bold uppercase tracking-wider text-secondary">100% Solid Hardwood</span>
+          <span className="font-secondary text-[11px] text-secondary/60">Kiln-dried ash & mahogany</span>
+        </div>
+        <div className="flex flex-col items-center gap-1.5">
+          <div className="w-10 h-10 rounded-2xl bg-gold/15 text-gold flex items-center justify-center mb-1">
+            <PiSparkleLight size={22} />
+          </div>
+          <span className="font-secondary text-[12px] font-bold uppercase tracking-wider text-secondary">Bespoke Finishes</span>
+          <span className="font-secondary text-[11px] text-secondary/60">Custom fabrics & wood stains</span>
+        </div>
+        <div className="flex flex-col items-center gap-1.5">
+          <div className="w-10 h-10 rounded-2xl bg-gold/15 text-gold flex items-center justify-center mb-1">
+            <PiRulerLight size={22} />
+          </div>
+          <span className="font-secondary text-[12px] font-bold uppercase tracking-wider text-secondary">Made to Measure</span>
+          <span className="font-secondary text-[11px] text-secondary/60">Custom room sizing on request</span>
+        </div>
+        <div className="flex flex-col items-center gap-1.5">
+          <div className="w-10 h-10 rounded-2xl bg-gold/15 text-gold flex items-center justify-center mb-1">
+            <PiCheckCircleFill size={22} className="text-gold" />
+          </div>
+          <span className="font-secondary text-[12px] font-bold uppercase tracking-wider text-secondary">White-Glove Delivery</span>
+          <span className="font-secondary text-[11px] text-secondary/60">Free setup across Addis Ababa</span>
+        </div>
+      </div>
+
+    </div>
   );
 };
 
-/* ─────────────────────────────────────────
-   SKELETON CARD
-───────────────────────────────────────── */
-const SkeletonCard = () => (
-  <div className="snap-start shrink-0 w-[88vw] sm:w-[400px] lg:w-[420px] rounded-3xl border border-secondary/10 overflow-hidden animate-pulse">
-    <div className="aspect-[4/3] bg-secondary/5" />
-    <div className="p-5 sm:p-6 space-y-3">
-      <div className="h-3 w-1/3 bg-secondary/8 rounded" />
-      <div className="h-5 w-2/3 bg-secondary/10 rounded" />
-      <div className="h-3 w-full bg-secondary/5 rounded" />
-      <div className="h-3 w-5/6 bg-secondary/5 rounded" />
-      <div className="h-3 w-4/6 bg-secondary/5 rounded" />
-      <div className="flex justify-between mt-4 pt-4 border-t border-secondary/8">
-        <div className="h-6 w-1/3 bg-secondary/8 rounded" />
-        <div className="h-9 w-24 bg-gold/20 rounded-full" />
-      </div>
-    </div>
-  </div>
-);
-
-/* ─────────────────────────────────────────
-   EMPTY STATE
-───────────────────────────────────────── */
-const EmptyState = () => (
-  <div className="w-full min-h-[300px] flex flex-col items-center justify-center py-16 text-center px-4">
-    <div className="w-14 h-14 rounded-2xl bg-gold/10 text-gold flex items-center justify-center mb-4">
-      <Package size={24} />
-    </div>
-    <p className="font-primary text-[20px] text-secondary mb-2">No packages yet</p>
-    <p className="font-secondary text-[13px] text-secondary/50 max-w-xs leading-relaxed">
-      Packages created from the admin dashboard will appear here automatically.
-    </p>
-  </div>
-);
-
-/* ─────────────────────────────────────────
-   GUARANTEE STRIP
-───────────────────────────────────────── */
-const guarantees = [
-  { icon: Crown, label: "Solid Ash Wood", desc: "Kiln-dried hardwood frames for lifetime stability." },
-  { icon: Sparkles, label: "Bespoke Finishes", desc: "Custom fabrics and wood stains on request." },
-  { icon: Truck, label: "White-Glove Delivery", desc: "Complimentary assembly and packaging removal." },
-  { icon: ShieldCheck, label: "10-Year Warranty", desc: "Backed by Kal Furniture master artisans." },
-];
-
-const GuaranteeStrip = () => (
-  <div className="container px-4 sm:px-6 lg:px-12 mx-auto mt-12 sm:mt-16">
-    <div className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-10 border border-secondary/10 shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
-      {guarantees.map(({ icon: Icon, label, desc }) => (
-        <div key={label} className="flex items-start gap-3.5">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gold/10 text-gold flex items-center justify-center shrink-0">
-            <Icon size={20} />
-          </div>
-          <div>
-            <h5 className="font-primary text-[15px] sm:text-[17px] text-secondary mb-0.5">{label}</h5>
-            <p className="font-secondary text-[11px] sm:text-[12px] text-secondary/60 leading-relaxed">{desc}</p>
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-);
-
-/* ─────────────────────────────────────────
-   MAIN SLIDER
-───────────────────────────────────────── */
 export default function PackageSlider() {
   const { packages, isLoaded } = usePackages();
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [canScrollPrev, setCanScrollPrev] = useState(false);
-  const [canScrollNext, setCanScrollNext] = useState(true);
-  const trackRef = useRef(null);
+  const [activePackageIndex, setActivePackageIndex] = useState(0);
 
-  /* Scroll state sync */
-  const updateScrollState = useCallback(() => {
-    const el = trackRef.current;
-    if (!el) return;
-    setCanScrollPrev(el.scrollLeft > 8);
-    setCanScrollNext(el.scrollLeft + el.clientWidth < el.scrollWidth - 8);
+  const totalPackages = packages.length;
 
-    const children = Array.from(el.children);
-    let closest = 0;
-    let minDist = Infinity;
-    children.forEach((child, i) => {
-      const dist = Math.abs(child.offsetLeft - el.scrollLeft);
-      if (dist < minDist) { minDist = dist; closest = i; }
-    });
-    setActiveIndex(closest);
-  }, []);
-
-  useEffect(() => {
-    updateScrollState();
-    const el = trackRef.current;
-    if (!el) return;
-    el.addEventListener("scroll", updateScrollState, { passive: true });
-    window.addEventListener("resize", updateScrollState);
-    return () => {
-      el.removeEventListener("scroll", updateScrollState);
-      window.removeEventListener("resize", updateScrollState);
-    };
-  }, [updateScrollState, isLoaded]);
-
-  const scrollByCard = (dir) => {
-    const el = trackRef.current;
-    if (!el) return;
-    const card = el.children[0];
-    if (!card) return;
-    const gap = 24;
-    el.scrollBy({ left: dir * (card.getBoundingClientRect().width + gap), behavior: "smooth" });
+  const handlePrev = () => {
+    setActivePackageIndex((prev) => (prev > 0 ? prev - 1 : totalPackages - 1));
   };
 
-  const scrollToIndex = (i) => {
-    const el = trackRef.current;
-    const card = el?.children[i];
-    if (!el || !card) return;
-    el.scrollTo({ left: card.offsetLeft, behavior: "smooth" });
+  const handleNext = () => {
+    setActivePackageIndex((prev) => (prev < totalPackages - 1 ? prev + 1 : 0));
   };
 
-  const onKeyDown = (e) => {
-    if (e.key === "ArrowRight") { e.preventDefault(); scrollByCard(1); }
-    if (e.key === "ArrowLeft")  { e.preventDefault(); scrollByCard(-1); }
-  };
+  const currentPackage = packages[activePackageIndex] || packages[0];
 
   return (
     <section aria-label="Curated furniture packages" className="w-full">
+      <div className="container px-4 sm:px-6 lg:px-12 mx-auto">
+        
+        {/* ── Top Suite Selector Bar (Smart & Practical) ── */}
+        {totalPackages > 1 && (
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 pb-5 border-b border-secondary/10">
+            <div>
+              <span className="font-secondary text-[11px] font-bold tracking-[0.25em] uppercase text-gold block mb-1">
+                Curated Architectural Suites
+              </span>
+              <p className="font-primary text-[24px] sm:text-[28px] font-normal text-secondary">
+                Select Suite to Explore
+              </p>
+            </div>
 
-      {/* Count + Controls row */}
-      <div className="container px-4 sm:px-6 lg:px-12 mx-auto flex items-center justify-between mb-5 sm:mb-8">
-        <p className="font-secondary text-[12px] text-secondary/50 tracking-[0.04em]">
-          {!isLoaded
-            ? "Loading…"
-            : `${packages.length} package${packages.length === 1 ? "" : "s"} available`}
-        </p>
+            {/* Suite Tabs & Arrows */}
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+              <div className="flex items-center gap-2 bg-[#FAF8F5] p-1.5 rounded-full border border-secondary/10">
+                {packages.map((pkg, idx) => {
+                  const isActive = activePackageIndex === idx;
+                  const title = formatSuiteTitle(pkg.name);
+                  const price = (pkg.price || 0).toLocaleString();
+                  return (
+                    <button
+                      key={pkg.id || idx}
+                      onClick={() => setActivePackageIndex(idx)}
+                      className={`px-4 sm:px-5 py-2 rounded-full font-secondary text-[11.5px] sm:text-[12px] font-bold uppercase tracking-wider transition-all duration-300 flex items-center gap-2 cursor-pointer ${
+                        isActive
+                          ? "bg-primary text-white shadow-md"
+                          : "text-secondary/70 hover:text-secondary hover:bg-white"
+                      }`}
+                    >
+                      <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-gold' : 'bg-secondary/30'}`} />
+                      <span>{title}</span>
+                      <span className={`hidden sm:inline text-[10px] font-normal ${isActive ? 'text-white/70' : 'text-secondary/50'}`}>
+                        ({price} <span className="font-ethiopic">ብር</span>)
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
 
-        {/* Desktop arrows */}
-        {isLoaded && packages.length > 1 && (
-          <div className="hidden sm:flex items-center gap-2">
-            <button
-              onClick={() => scrollByCard(-1)}
-              disabled={!canScrollPrev}
-              aria-label="Previous packages"
-              className="w-10 h-10 rounded-full border border-secondary/15 flex items-center justify-center text-secondary transition-all duration-200 hover:border-gold hover:text-gold disabled:opacity-25 disabled:pointer-events-none"
-            >
-              <ChevronLeft size={17} strokeWidth={1.75} />
-            </button>
-            <button
-              onClick={() => scrollByCard(1)}
-              disabled={!canScrollNext}
-              aria-label="Next packages"
-              className="w-10 h-10 rounded-full border border-secondary/15 flex items-center justify-center text-secondary transition-all duration-200 hover:border-gold hover:text-gold disabled:opacity-25 disabled:pointer-events-none"
-            >
-              <ChevronRight size={17} strokeWidth={1.75} />
-            </button>
+              {/* Prev / Next Arrows */}
+              <div className="flex items-center gap-1.5 ml-auto md:ml-0">
+                <button
+                  onClick={handlePrev}
+                  className="w-10 h-10 rounded-full border border-secondary/20 flex items-center justify-center text-secondary hover:bg-gold hover:text-white hover:border-gold transition-all duration-300 bg-white shadow-xs cursor-pointer"
+                  aria-label="Previous suite"
+                >
+                  <PiArrowLeftLight size={18} />
+                </button>
+                <button
+                  onClick={handleNext}
+                  className="w-10 h-10 rounded-full border border-secondary/20 flex items-center justify-center text-secondary hover:bg-gold hover:text-white hover:border-gold transition-all duration-300 bg-white shadow-xs cursor-pointer"
+                  aria-label="Next suite"
+                >
+                  <PiArrowRightLight size={18} />
+                </button>
+              </div>
+            </div>
           </div>
         )}
+
+        {/* ── Active Suite Showcase View ── */}
+        {!isLoaded ? (
+          <div className="w-full h-96 rounded-3xl bg-secondary/5 animate-pulse flex items-center justify-center text-secondary/40 font-secondary">
+            Loading curated packages...
+          </div>
+        ) : !currentPackage ? (
+          <div className="w-full py-16 text-center text-secondary/50 font-secondary">
+            No packages available at this time.
+          </div>
+        ) : (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentPackage.id || activePackageIndex}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <PackageView pkg={currentPackage} />
+            </motion.div>
+          </AnimatePresence>
+        )}
+
       </div>
-
-      {/* Edge-fade + Track */}
-      <div className="relative">
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-6 sm:w-12 bg-gradient-to-r from-[#FAF8F5] to-transparent z-10" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-6 sm:w-12 bg-gradient-to-l from-[#FAF8F5] to-transparent z-10" />
-
-        <div
-          ref={trackRef}
-          tabIndex={0}
-          onKeyDown={onKeyDown}
-          aria-label="Swipe or use arrow keys to browse packages"
-          className="flex gap-5 sm:gap-6 overflow-x-auto snap-x snap-mandatory scrollbar-none px-4 sm:px-6 lg:px-12 pb-4 focus-visible:outline-none"
-        >
-          {!isLoaded
-            ? Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)
-            : packages.length === 0
-            ? <EmptyState />
-            : packages.map((pkg) => <PackageCard key={pkg.id} pkg={pkg} />)
-          }
-        </div>
-      </div>
-
-      {/* Dot indicators */}
-      {isLoaded && packages.length > 1 && (
-        <div className="flex justify-center gap-2 mt-6" aria-hidden="true">
-          {packages.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => scrollToIndex(i)}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                i === activeIndex ? "w-6 bg-gold" : "w-1.5 bg-secondary/15 hover:bg-secondary/30"
-              }`}
-              aria-label={`Go to package ${i + 1}`}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Mobile prev/next under track */}
-      {isLoaded && packages.length > 1 && (
-        <div className="flex sm:hidden items-center justify-center gap-3 mt-5">
-          <button
-            onClick={() => scrollByCard(-1)}
-            disabled={!canScrollPrev}
-            className="w-11 h-11 rounded-full border border-secondary/15 flex items-center justify-center text-secondary disabled:opacity-25"
-            aria-label="Previous packages"
-          >
-            <ChevronLeft size={17} strokeWidth={1.75} />
-          </button>
-          <button
-            onClick={() => scrollByCard(1)}
-            disabled={!canScrollNext}
-            className="w-11 h-11 rounded-full border border-secondary/15 flex items-center justify-center text-secondary disabled:opacity-25"
-            aria-label="Next packages"
-          >
-            <ChevronRight size={17} strokeWidth={1.75} />
-          </button>
-        </div>
-      )}
-
-      {/* Artisanal Guarantee Strip */}
-      {isLoaded && <GuaranteeStrip />}
-
     </section>
   );
 }
