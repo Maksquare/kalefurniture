@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useSiteSettings } from "@/context/SiteSettingsContext";
-import { compressImage } from "@/lib/imageUtils";
+import { useState, useEffect, useRef } from "react";
+import { useSiteSettings, defaultPromoSettings } from "@/context/SiteSettingsContext";
+import { compressImage, uploadImageFile } from "@/lib/imageUtils";
+import UploadProgressBar from "./UploadProgressBar";
 import {
   PiMegaphoneSimpleLight,
   PiPencilSimpleLight,
@@ -16,11 +17,25 @@ import toast from "react-hot-toast";
 
 export default function PromoBannerEditor() {
   const { promoSettings, updatePromoSettings } = useSiteSettings();
-  const [form, setForm] = useState(promoSettings);
+  const [form, setForm] = useState(promoSettings || defaultPromoSettings);
   const [isSaved, setIsSaved] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({
+    active: false,
+    percent: 0,
+    stage: "idle",
+    stageText: "",
+    fileName: "",
+    loadedBytes: 0,
+    totalBytes: 0,
+    error: null,
+  });
+  const abortControllerRef = useRef(null);
 
   useEffect(() => {
-    setForm(promoSettings);
+    if (promoSettings) {
+      setForm(promoSettings);
+    }
   }, [promoSettings]);
 
   const handleChange = (e) => {
@@ -35,12 +50,63 @@ export default function PromoBannerEditor() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    setIsUploading(true);
+    setUploadProgress({
+      active: true,
+      percent: 8,
+      stage: "compressing",
+      stageText: "Optimizing promo banner image & converting to WebP...",
+      fileName: file.name,
+      loadedBytes: 0,
+      totalBytes: file.size,
+      error: null,
+    });
+
     try {
-      const compressed = await compressImage(file);
-      setForm((prev) => ({ ...prev, image: compressed }));
+      const uploadedUrl = await uploadImageFile(file, "promo", {
+        maxWidth: 1600,
+        maxHeight: 1600,
+        quality: 0.85,
+        signal: controller.signal,
+        onProgress: (p) => {
+          setUploadProgress((prev) => ({
+            ...prev,
+            percent: p.percent,
+            stage: p.stage,
+            stageText: p.stageText,
+            fileName: p.fileName || file.name,
+            loadedBytes: p.loadedBytes || 0,
+            totalBytes: p.totalBytes || file.size,
+            error: p.error || null,
+          }));
+        },
+      });
+
+      setForm((prev) => ({ ...prev, image: uploadedUrl }));
+      toast.success("Banner photo uploaded to cPanel storage!");
+      setTimeout(() => {
+        setUploadProgress((prev) => ({ ...prev, active: false }));
+      }, 2500);
     } catch (err) {
-      console.error(err);
-      toast.error("Failed to process banner image.");
+      if (err.name !== "AbortError" && !err.message?.includes("aborted")) {
+        console.error(err);
+        toast.error("Failed to upload banner image: " + (err?.message || "Please try another file."));
+        setUploadProgress((prev) => ({
+          ...prev,
+          stage: "error",
+          error: err?.message || "Upload failed",
+        }));
+      } else {
+        toast("Upload cancelled");
+        setUploadProgress((prev) => ({ ...prev, active: false }));
+      }
+    } finally {
+      setIsUploading(false);
+      abortControllerRef.current = null;
+      e.target.value = "";
     }
   };
 
@@ -181,22 +247,43 @@ export default function PromoBannerEditor() {
                   type="file"
                   accept="image/*"
                   onChange={handleImageUpload}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  disabled={isUploading}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
                 />
                 <div className="border border-dashed border-secondary/20 rounded-xl p-4 flex items-center gap-3 bg-[#FAF8F5] hover:border-gold transition-colors">
                   <div className="w-10 h-10 rounded-lg bg-gold/10 text-gold flex items-center justify-center shrink-0">
-                    <PiUploadSimple size={18} />
+                    {isUploading ? (
+                      <span className="w-4 h-4 border-2 border-gold border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <PiUploadSimple size={18} />
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="font-secondary text-[12px] font-semibold text-secondary truncate">
-                      Click to upload new banner photo
+                      {isUploading ? "Uploading to cPanel storage..." : "Click to upload new banner photo"}
                     </p>
                     <p className="font-secondary text-[10px] text-secondary/40">
-                      Supports JPG, PNG, WEBP
+                      Supports JPG, PNG, WEBP (stored in cPanel public/uploads)
                     </p>
                   </div>
                 </div>
               </div>
+
+              {/* Smart Interactive Progress Bar */}
+              {uploadProgress.active && (
+                <UploadProgressBar
+                  progress={uploadProgress.percent}
+                  stage={uploadProgress.stage}
+                  stageText={uploadProgress.stageText}
+                  fileName={uploadProgress.fileName}
+                  loadedBytes={uploadProgress.loadedBytes}
+                  totalBytes={uploadProgress.totalBytes}
+                  onCancel={() => abortControllerRef.current?.abort()}
+                  onDismiss={() => setUploadProgress((p) => ({ ...p, active: false }))}
+                  error={uploadProgress.error}
+                  inline={true}
+                />
+              )}
             </div>
           </div>
 

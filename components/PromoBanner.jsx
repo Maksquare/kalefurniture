@@ -3,10 +3,14 @@
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { PiArrowRightLight } from "react-icons/pi";
 import Link from "next/link";
+import { resolveImageUrl } from "@/lib/imageUtils";
 
 export default function PromoBanner({ initialPromoSettings }) {
-  const { promoSettings: contextSettings } = useSiteSettings();
-  const promoSettings = contextSettings || initialPromoSettings;
+  const { promoSettings: contextSettings } = useSiteSettings() || {};
+  const promoSettings =
+    contextSettings !== null && contextSettings !== undefined
+      ? contextSettings
+      : initialPromoSettings;
 
   if (!promoSettings || !promoSettings.enabled) {
     return null;
@@ -17,7 +21,7 @@ export default function PromoBanner({ initialPromoSettings }) {
     subtitle = "Discover our premium furniture bundles at exclusive promotional prices. Elevate your entire living space instantly.",
     buttonText = "Explore Packages",
     buttonLink = "/packages",
-    image = "/assets/img/hero/beige-chair.jpeg",
+    image = "https://kalefurnitures.com/uploads/1790521102_b249fa7f_ChatGPT_Image_Sep_27__2026__11.png",
     bgColor = "#DFD2C1",
   } = promoSettings;
 
@@ -48,8 +52,10 @@ export default function PromoBanner({ initialPromoSettings }) {
           {image && (
             <div className="w-full md:w-1/2 flex justify-center md:justify-end items-end relative z-0 md:absolute right-0 bottom-0 top-0">
               <img 
-                src={image} 
+                src={resolveImageUrl(image)} 
                 alt="Promotional Banner"
+                loading="lazy"
+                decoding="async"
                 className="w-full max-w-[280px] sm:max-w-[320px] md:max-w-[400px] object-contain drop-shadow-2xl mix-blend-multiply md:translate-x-8 md:translate-y-8 translate-y-6"
               />
             </div>
