@@ -1,11 +1,26 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+
+  output: 'standalone',
+
   images: {
     unoptimized: true,
   },
+
+  productionBrowserSourceMaps: false,
+
   experimental: {
-    cpus: 1,
+    webpackMemoryOptimizations: true,
+
+    serverActions: {
+      allowedOrigins: [
+        'kalefurnitures.com',
+        '*.kalefurnitures.com',
+        'localhost:3000',
+        'localhost:3001',
+      ],
+    },
   },
 };
 

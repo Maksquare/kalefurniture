@@ -1,17 +1,18 @@
-import { Cormorant_Garamond, Jost, Italiana } from "next/font/google";
+import { Plus_Jakarta_Sans, Jost, Alex_Brush } from "next/font/google";
 import "./globals.css";
 import { ProductProvider } from "@/context/ProductContext";
 import { PackageProvider } from "@/context/PackageContext";
 import { CartProvider } from "@/context/CartContext";
 import { SiteSettingsProvider } from "@/context/SiteSettingsContext"; 
+import { CategoryProvider } from "@/context/CategoryContext";
 import CartDrawer from "@/components/CartDrawer";
+import CookieConsent from "@/components/CookieConsent";
 import { Toaster } from "react-hot-toast";
 
-const cormorant = Cormorant_Garamond({
+const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-cormorant",
-  weight: ["300", "400", "500", "600", "700"],
-  style: ["normal", "italic"],
+  variable: "--font-plus-jakarta",
+  weight: ["300", "400", "500", "600", "700", "800"],
   display: "swap",
 });
 
@@ -22,14 +23,15 @@ const jost = Jost({
   display: "swap",
 });
 
-const italiana = Italiana({
+const alexBrush = Alex_Brush({
   subsets: ["latin"],
-  variable: "--font-italiana",
+  variable: "--font-cursive",
   weight: ["400"],
   display: "swap",
 });
 
 export const metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://kalefurnitures.com"),
   title: {
     default: "Kal Furniture | Premium Furniture in Addis Ababa",
     template: "%s | Kal Furniture",
@@ -67,18 +69,21 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body
-        className={`${cormorant.variable} ${jost.variable} ${italiana.variable} antialiased`}
+        className={`${plusJakarta.variable} ${jost.variable} ${alexBrush.variable} antialiased`}
       >
         <SiteSettingsProvider>
-          <PackageProvider>
-            <ProductProvider>
-              <CartProvider>
-                {children}
-                <CartDrawer />
-                <Toaster position="bottom-right" toastOptions={{ className: 'font-secondary text-[14px]' }} />
-              </CartProvider>
-            </ProductProvider>
-          </PackageProvider>
+          <CategoryProvider>
+            <PackageProvider>
+              <ProductProvider>
+                <CartProvider>
+                  {children}
+                  <CartDrawer />
+                  <CookieConsent />
+                  <Toaster position="bottom-right" toastOptions={{ className: 'font-secondary text-[14px]' }} />
+                </CartProvider>
+              </ProductProvider>
+            </PackageProvider>
+          </CategoryProvider>
         </SiteSettingsProvider>
       </body>
     </html>

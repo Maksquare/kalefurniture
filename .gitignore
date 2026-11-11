@@ -43,3 +43,15 @@ next-env.d.ts
 # archives
 *.zip
 
+# user uploaded media in cPanel uploads
+/public/uploads/**
+!/public/uploads/**/
+!/public/uploads/**/.gitkeep
+
+# runtime & temporary scratch files
+.bot.pid
+/scratch/
+__pycache__/
+*.pyc
+
+

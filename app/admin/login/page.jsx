@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { login } from "../actions";
+import { getSupabase } from "@/lib/supabase";
 import Logo from "@/components/Logo";
 import { motion } from "framer-motion";
 import { PiLockKeyLight, PiArrowRightLight, PiEnvelopeLight } from "react-icons/pi";
@@ -16,23 +16,52 @@ export default function LoginPage() {
     setError("");
 
     const formData = new FormData(e.currentTarget);
+    const email = formData.get("email");
+    const password = formData.get("password");
 
     try {
-      const result = await login(formData);
-      if (result?.error) {
-        setError(result.error);
+      const supabase = getSupabase();
+      if (!supabase) {
+        setError("Database configuration error. Missing environment variables.");
         setIsLoading(false);
-      } else if (result?.success) {
-        window.location.href = result.redirectUrl || "/admin";
-      } else {
-        setIsLoading(false);
+        return;
       }
+
+      // Authenticate with Supabase
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError || !data?.session?.access_token) {
+        setError(authError?.message || "Invalid email or password");
+        setIsLoading(false);
+        return;
+      }
+
+      // Set the session cookie directly in document.cookie
+      const isHttps = typeof window !== "undefined" && window.location.protocol === "https:";
+      document.cookie = `admin_token=${data.session.access_token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax${isHttps ? "; Secure" : ""}`;
+
+      // Synchronize with backend API session endpoint
+      try {
+        await fetch("/api/admin/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ access_token: data.session.access_token }),
+        });
+      } catch (e) {
+        console.warn("Backend session cookie sync notice:", e);
+      }
+
+      window.location.href = "/admin";
     } catch (err) {
       console.error("Login error:", err);
       setError(err.message || "An unexpected error occurred connecting to the server.");
       setIsLoading(false);
     }
   }
+
 
   return (
     <div className="min-h-screen bg-surface flex items-center justify-center p-6 relative overflow-hidden">

@@ -1,23 +1,50 @@
 
+@import url('https://fonts.googleapis.com/css2?family=Alex+Brush&family=Playfair+Display:ital,wght@1,400;1,600&family=Parisienne&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* ─────────────────────────────────────────────────────────────
-   GOOGLE FONTS IMPORT
-   Cormorant Garamond — Elegant display serif for headings
-   Jost              — Clean geometric sans for body
-   Italiana          — Decorative for labels & special text
+   GOOGLE FONTS CONFIGURATION
+   Plus Jakarta Sans — Clean modern geometric luxury sans for headings & display
+   Jost              — Clean geometric sans for body & UI
+   Alex Brush        — Beautiful flowing cursive script with high legibility
 ───────────────────────────────────────────────────────────── */
+
+/* ─────────────────────────────────────────────────────────────
+   IN-PROJECT FONTS
+   Balderasu — Authentic Ethiopian script font from inspo folder
+───────────────────────────────────────────────────────────── */
+@font-face {
+  font-family: 'Balderasu';
+  src: url('/fonts/Balderasu.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+.font-ethiopic {
+  font-family: 'Balderasu', var(--font-balderasu), system-ui, sans-serif !important;
+}
+
+.font-cursive {
+  font-family: 'Alex Brush', var(--font-cursive), 'Parisienne', cursive, serif !important;
+  font-style: normal;
+}
 
 /* ─────────────────────────────────────────────────────────────
    CSS CUSTOM PROPERTIES
 ───────────────────────────────────────────────────────────── */
 :root {
-  /* Font vars (referenced in tailwind.config.js) */
-  --font-cormorant: 'Cormorant Garamond', Georgia, serif;
-  --font-jost:      'Jost', system-ui, sans-serif;
-  --font-italiana:  'Italiana', Georgia, serif;
+  /* Clean Luxury Sans-Serif Typography for English text */
+  --font-plus-jakarta: var(--font-plus-jakarta), 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-jost:         var(--font-jost), 'Jost', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-primary:      var(--font-plus-jakarta);
+  --font-secondary:    var(--font-jost);
+  --font-cormorant:    var(--font-plus-jakarta); /* Mapped to clean sans-serif */
+  --font-italiana:     var(--font-plus-jakarta); /* Mapped to clean sans-serif */
+  --font-balderasu:    'Balderasu', sans-serif;
 
   /* Brand palette */
   --color-primary:    #062335; /* Deep Navy */

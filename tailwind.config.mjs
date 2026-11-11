@@ -14,9 +14,12 @@ export default {
       xl: "1200px",
     },
     fontFamily: {
-      primary: ["var(--font-cormorant)"],    // Elegant serif for headings
-      secondary: ["var(--font-jost)"],        // Clean geometric sans for body
-      accent: ["var(--font-italiana)"],       // Decorative for special labels
+      primary: ["var(--font-plus-jakarta)", "var(--font-jost)", "system-ui", "-apple-system", "sans-serif"],    // Clean luxury sans-serif for headings & display
+      secondary: ["var(--font-jost)", "var(--font-plus-jakarta)", "system-ui", "-apple-system", "sans-serif"],  // Clean geometric sans-serif for body
+      sans: ["var(--font-plus-jakarta)", "var(--font-jost)", "system-ui", "-apple-system", "sans-serif"],
+      accent: ["var(--font-plus-jakarta)", "var(--font-jost)", "system-ui", "-apple-system", "sans-serif"],
+      cursive: ["var(--font-cursive)", "cursive"], // Elegant script font for luxury callouts
+      ethiopic: ["var(--font-balderasu)", "Balderasu", "sans-serif"], // Custom Balderasu font for Ethiopian script & Birr
     },
     container: {
       center: true,
